@@ -8,6 +8,8 @@ import { PLAN_LOADS, currentPlan } from '@/simulation/training/power';
 import type { PlanLoadId } from '@/simulation/training/types';
 import { getRoomPower } from '@/features/explore/world/power';
 import { RED_STORM_CONFIG } from '@/simulation/config';
+import { soundManager } from '@/features/audio/soundManager';
+
 
 const CATEGORY: Record<string, string> = {
   critical: 'text-red-300 border-red-500/40 bg-red-950/40',
@@ -148,7 +150,10 @@ export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = fa
                     className="h-4 w-4 accent-orange-500"
                     checked={on}
                     disabled={concluded}
-                    onChange={(e) => setDraft({ ...plan, [load.id]: e.target.checked })}
+                    onChange={(e) => {
+                      soundManager.playSwitch(e.target.checked);
+                      setDraft({ ...plan, [load.id]: e.target.checked });
+                    }}
                   />
                   <span className="font-semibold text-stone-200">{load.label}</span>
                 </span>
@@ -185,6 +190,7 @@ export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = fa
           type="button"
           disabled={!dirty || concluded}
           onClick={() => {
+            soundManager.playSuccess();
             applyAction({ type: 'APPLY_POWER_PLAN', loads: plan });
             setDraft(null);
           }}
@@ -193,10 +199,18 @@ export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = fa
           {dirty ? 'Apply this plan' : 'Plan matches current settings'}
         </button>
         {dirty && (
-          <button type="button" onClick={() => setDraft(null)} className="rounded border border-stone-700 px-3 py-2 text-xs text-stone-300 hover:bg-stone-800">
+          <button
+            type="button"
+            onClick={() => {
+              soundManager.playClick();
+              setDraft(null);
+            }}
+            className="rounded border border-stone-700 px-3 py-2 text-xs text-stone-300 hover:bg-stone-800"
+          >
             Reset
           </button>
         )}
+
       </div>
         </div>
       </div>

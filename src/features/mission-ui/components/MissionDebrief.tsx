@@ -6,6 +6,8 @@ import { useMissionStore } from '@/state/missionStore';
 import { assessLearning, type Rating } from '@/simulation/training/assessment';
 import { getMissionSummary } from '@/simulation/debrief';
 import type { MissionSnapshot } from '@/simulation/types';
+import { soundManager } from '@/features/audio/soundManager';
+
 
 const RATING: Record<Rating, { label: string; cls: string }> = {
   proficient: { label: 'Proficient', cls: 'border-emerald-500/50 bg-emerald-950/40 text-emerald-300' },
@@ -106,11 +108,13 @@ export const MissionDebrief: React.FC = () => {
               <li key={s.snapshotId} className="flex items-center justify-between gap-2 rounded border border-mars-border/60 bg-black/20 px-2 py-1">
                 <span><span className="font-mono text-stone-500">H{s.hour}</span> {text}</span>
                 <button type="button" onClick={() => {
+                  soundManager.playClick();
                   const before = history[Math.max(0, i - 1)];
                   applyAction({ type: 'REWIND_TO', hour: before.hour, branchFrom: missionState.branchId, snapshotId: before.snapshotId });
                 }} className="flex items-center gap-1 rounded border border-stone-600 px-1.5 py-0.5 text-[10px] text-stone-200 hover:bg-stone-800">
                   <Undo2 className="h-3 w-3" aria-hidden /> Rewind before this
                 </button>
+
               </li>
             ))}
           </ul>

@@ -45,6 +45,7 @@ export function actionForHotspot(h: ServiceHotspot, training: TrainingState): Tr
     case 'hatch':
       return { type: 'TRAINING_STEP', step: { step: p.hatchOpen ? 'CLOSE_HATCH' : 'OPEN_HATCH' } };
     case 'control-panel':
+      if (p.phase === 'failed-verification') return { type: 'TRAINING_STEP', step: { step: 'RESTORE_TEST_READY' } };
       if (p.testReady) return { type: 'TRAINING_STEP', step: { step: 'RUN_STARTUP_TEST' } };
       if (!p.maintenanceMode) return { type: 'TRAINING_STEP', step: { step: 'ENTER_MAINTENANCE_MODE' } };
       if (!p.inactiveConfirmed) return { type: 'TRAINING_STEP', step: { step: 'CONFIRM_INACTIVE' } };

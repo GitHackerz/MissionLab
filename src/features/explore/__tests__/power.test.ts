@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createTrainingMission, applyMissionAction, advanceMission } from '@/simulation/engine';
 import { getRecyclerOperation, readRecycler } from '@/simulation/training/recycler';
 import { RED_STORM_CONFIG } from '@/simulation/config';
-import { getRoomPower } from '../world/power';
+import { getRoomPower, roomEquipmentActive } from '../world/power';
 import { useMissionStore } from '@/state/missionStore';
 import { createSnapshot } from '@/simulation/history';
 import { modulePowerFraction } from '@/features/habitat-3d/utils/visualState';
@@ -49,6 +49,13 @@ describe('allocated habitat circuits', () => {
     const lit = advanceMission(initial, 1);
     expect(lit.training!.cropGrowthHours).toBe(1);
     expect(lit.resources.foodRations).toBeGreaterThan(later.resources.foodRations);
+  });
+  it('silences shed-room machinery without silencing an independently powered air unit', () => {
+    const state = plan(createTrainingMission(), { type: 'APPLY_POWER_PLAN', loads: { greenhouse: false, 'water-recycler': false } });
+    expect(roomEquipmentActive(state, 'greenhouse')).toBe(false);
+    expect(roomEquipmentActive(state, 'life-support')).toBe(true);
+    const silent = plan(state, { type: 'APPLY_POWER_PLAN', loads: { 'life-support': false } });
+    expect(roomEquipmentActive(silent, 'life-support')).toBe(false);
   });
   it('restores the real allocated circuit through mission rewind and preserves the abandoned branch', () => {
     const initial = createTrainingMission();

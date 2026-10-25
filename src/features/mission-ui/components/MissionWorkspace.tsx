@@ -61,7 +61,13 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
   // The header (and its guest-trial lock) is hidden in the briefing and explore views, so keep the account area mounted.
   const guestGate = <div className="pointer-events-none fixed inset-x-0 top-2 z-[60] flex justify-center px-3"><div className="pointer-events-auto">{account}</div></div>;
 
-  const canContinue = entered || missionState.hour > 0 || (missionState.training?.powerPlanAppliedHour !== null && missionState.training?.powerPlanAppliedHour !== undefined);
+  const canContinue =
+    entered ||
+    missionState.hour > 0 ||
+    (missionState.training?.powerPlanAppliedHour !== null && missionState.training?.powerPlanAppliedHour !== undefined) ||
+    (missionState.training?.recycler.procedure.completedSteps.length ?? 0) > 0 ||
+    (missionState.training?.hypotheses.length ?? 0) > 0;
+
 
   if (!started) {
     return (
@@ -71,15 +77,9 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
           savedHour={missionState.hour}
           savedBattery={missionState.resources.batteryKwh}
           savedWater={missionState.resources.waterLiters}
-          onContinue={() => {
-            if (worldMode === 'habitat') {
-              enterHabitat();
-            } else {
-              exitHabitat();
-            }
-            setStarted(true);
-          }}
-          onStart={(mode, destination = 'colony') => {
+          onContinue={() => { enterHabitat(); setStarted(true); }}
+          onStart={(mode, destination = 'habitat') => {
+            useMissionStore.getState().enableTraining();
             useMissionStore.getState().resetMission();
             useMissionStore.getState().applyAction({ type: 'SET_LEARNING_MODE', mode });
             useMissionStore.getState().clearFeedback();

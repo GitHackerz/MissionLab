@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -16,8 +16,17 @@ import {
   BookOpen,
   Layers,
   Sparkles,
+  Volume2,
+  VolumeX,
+  Download,
+  CheckCircle,
+  Wifi,
+  WifiOff,
+  HelpCircle,
 } from 'lucide-react';
 import type { LearningMode } from '@/simulation/training/types';
+import { soundManager } from '@/features/audio/soundManager';
+import { usePwa } from '@/features/pwa/usePwa';
 
 interface Props {
   onStart: (mode: LearningMode, destination?: 'colony' | 'habitat') => void;
@@ -38,7 +47,20 @@ export function MissionBriefing({
 }: Props) {
   const [screen, setScreen] = useState<'menu' | 'missions' | 'briefing'>('menu');
   const [mode, setMode] = useState<LearningMode>('cadet');
-  const [destination, setDestination] = useState<'colony' | 'habitat'>('colony');
+  const [destination, setDestination] = useState<'colony' | 'habitat'>('habitat');
+  const [muted, setMuted] = useState<boolean>(false);
+  useEffect(() => setMuted(soundManager.isMuted()), []);
+  const { isOnline, isInstallable, offlineReady, cachingProgress, cachingStatusText, promptInstall, prepareForOfflinePlay } = usePwa();
+
+  const handleToggleSound = () => {
+    const nextMuted = soundManager.toggleMute();
+    setMuted(nextMuted);
+    if (!nextMuted) soundManager.playClick();
+  };
+
+  const handleClick = () => {
+    soundManager.playClick();
+  };
 
   return (
     <main className="briefing training-entry relative overflow-x-hidden min-h-screen bg-[#0e0b0c] text-cream">
@@ -62,15 +84,55 @@ export function MissionBriefing({
               </span>
             </div>
             <p className="font-data text-[11px] uppercase tracking-widest text-dust">
-              Autonomous Mars Habitat Simulator
+              Hands-on Mars Mission Training
             </p>
           </div>
         </div>
 
-        {/* Vision & Concept Badge */}
-        <div className="hidden sm:flex items-center gap-2 text-xs font-data text-dust bg-space-2 px-3 py-1.5 rounded-full border border-space-line">
-          <span className="h-2 w-2 rounded-full bg-status-ok animate-pulse" />
-          <span>DETERMINISTIC ECLSS DIGITAL TWIN</span>
+        {/* Status badges & Quick Settings */}
+        <div className="flex items-center gap-2 text-xs font-data">
+          {/* Online/Offline Status */}
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${
+              isOnline
+                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300'
+                : 'border-amber-500/40 bg-amber-950/40 text-amber-300'
+            }`}
+            title={isOnline ? 'Online mode' : 'Offline mode — local simulation active'}
+          >
+            {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
+            <span>{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+          </span>
+
+          {/* Sound Mute/Unmute */}
+          <button
+            type="button"
+            onClick={handleToggleSound}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-space-line bg-space-2 text-dust hover:text-cream transition"
+            title={muted ? 'Unmute environmental sounds' : 'Mute sounds'}
+            aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+          >
+            {muted ? <VolumeX size={13} className="text-stone-400" /> : <Volume2 size={13} className="text-flare" />}
+            <span className="hidden sm:inline">{muted ? 'Muted' : 'Audio On'}</span>
+          </button>
+
+          {/* Install PWA Prompt if supported */}
+          {isInstallable && (
+            <button
+              type="button"
+              onClick={() => { handleClick(); promptInstall(); }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-flare/40 bg-flare/10 text-flare hover:bg-flare/20 transition"
+              title="Install MissionLab as a desktop or mobile application"
+            >
+              <Download size={13} />
+              <span>Install App</span>
+            </button>
+          )}
+
+          <div className="hidden sm:flex items-center gap-2 text-xs font-data text-dust bg-space-2 px-3 py-1.5 rounded-full border border-space-line">
+            <span className="h-2 w-2 rounded-full bg-status-ok animate-pulse" />
+            <span>JUNIOR ASTRONAUT TRAINING</span>
+          </div>
         </div>
       </header>
 
@@ -80,7 +142,10 @@ export function MissionBriefing({
           <button
             type="button"
             className="mb-6 inline-flex items-center gap-2 rounded-md border border-space-line bg-space-2 px-3 py-1.5 text-xs font-medium text-dust hover:text-cream hover:border-ember transition"
-            onClick={() => setScreen(screen === 'briefing' ? 'missions' : 'menu')}
+            onClick={() => {
+              handleClick();
+              setScreen(screen === 'briefing' ? 'missions' : 'menu');
+            }}
           >
             <ArrowLeft size={14} /> Back
           </button>
@@ -90,10 +155,10 @@ export function MissionBriefing({
         <div className="mission-eyebrow mb-3 flex items-center gap-2 font-data text-xs uppercase tracking-widest text-ember">
           <span className="status-dot h-2 w-2 rounded-full bg-ember shadow-[0_0_8px_#f47a3a]" />
           {screen === 'menu'
-            ? 'MISSION SELECTION & COMMAND OVERVIEW'
+            ? 'EXPLORE / INVESTIGATE / LEARN'
             : screen === 'missions'
-            ? 'TRAINING CATALOG / 01 SCENARIO ACTIVE'
-            : 'TACTICAL BRIEFING / THE RED STORM'}
+            ? 'TRAINING CATALOG / 01 MISSION AVAILABLE'
+            : 'MISSION BRIEFING / THE RED STORM'}
         </div>
 
         {/* SCREEN 1: Menu / Overview */}
@@ -105,20 +170,20 @@ export function MissionBriefing({
                 <em className="text-ember not-italic">Your call.</em>
               </h1>
               <p className="mt-4 text-lg sm:text-xl font-medium leading-relaxed text-cream/90 max-w-xl">
-                Master extraterrestrial systems engineering by keeping a simulated Mars research outpost operational.
+                Learn engineering by keeping a Mars habitat running.
               </p>
               <p className="mt-2 text-sm leading-relaxed text-dust max-w-xl">
-                Operate life-support machinery, manage electrical power buffers during severe dust storms, and observe real, unscripted consequences. At mission conclusion, dissect your choices through our evidence-grounded <strong className="text-cream">Mission Autopsy</strong>.
+                Explore as an astronaut. Investigate equipment, test your ideas and watch the station respond. Review your decisions in <strong className="text-cream">Mission Autopsy</strong>.
               </p>
             </div>
 
             {/* Persistent Flight Log Callout */}
             <div className="rounded-lg border border-space-line bg-space-2/90 p-4 shadow-lg backdrop-blur">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ember">
-                <Sparkles size={14} /> Persistent Telemetry & Decision Tracking
+                <Sparkles size={14} /> Continue and learn from your decisions
               </div>
               <p className="mt-1 text-xs text-dust leading-relaxed">
-                Every operational decision you confirm is recorded in our deterministic state tree. Your mission progress is automatically saved to local storage so you can pause, resume, and explore counterfactual timelines with <strong className="text-cream">Timeline Rewind</strong>.
+                Your current attempt is saved on this browser when storage is available. Continue later, or try a different decision with <strong className="text-cream">Rewind</strong>.
               </p>
             </div>
 
@@ -127,7 +192,7 @@ export function MissionBriefing({
               <div className="rounded-lg border border-emerald-500/40 bg-emerald-950/20 p-4 shadow-md space-y-3">
                 <div className="flex items-center justify-between text-xs text-emerald-300">
                   <span className="flex items-center gap-1.5 font-semibold">
-                    <UserCheck size={14} /> ACTIVE FLIGHT RECORD IN STORAGE
+                    <UserCheck size={14} /> CURRENT MISSION
                   </span>
                   <span className="font-data">Hour {savedHour.toFixed(1)} / 72.0 h</span>
                 </div>
@@ -141,7 +206,10 @@ export function MissionBriefing({
                 </div>
                 <button
                   type="button"
-                  onClick={onContinue}
+                  onClick={() => {
+                    handleClick();
+                    onContinue?.();
+                  }}
                   className="game-button flex w-full items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded transition text-sm shadow"
                 >
                   Continue current mission <ArrowUpRight size={16} />
@@ -153,7 +221,10 @@ export function MissionBriefing({
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setScreen('missions')}
+                onClick={() => {
+                  handleClick();
+                  setScreen('missions');
+                }}
                 className="start-mission inline-flex items-center justify-between gap-4 rounded-md bg-flare px-6 py-4 font-body text-base font-bold text-flare-ink shadow-lg transition hover:bg-flare-hover active:translate-y-px"
               >
                 <span>Start Training</span>
@@ -161,20 +232,59 @@ export function MissionBriefing({
               </button>
             </div>
 
+            {/* Offline Classroom Preparation Card */}
+            <div className="rounded-lg border border-space-line/70 bg-space-2/60 p-4 text-xs text-dust space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-cream flex items-center gap-2">
+                  {offlineReady ? <CheckCircle size={15} className="text-emerald-400" /> : <Download size={15} className="text-flare" />}
+                  <span>{offlineReady ? 'Offline Content Ready' : 'Classroom & Offline Preparation'}</span>
+                </span>
+                <span className="text-[11px] font-data text-stone-400">
+                  {offlineReady ? 'Cached locally' : 'Cache for offline use'}
+                </span>
+              </div>
+              <p className="leading-relaxed">
+                Cache 3D habitat models, textures, and the complete simulation engine so you can play without an internet connection in STEM classrooms or workshops.
+              </p>
+              {cachingProgress !== null ? (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-[11px] font-data text-stone-300">
+                    <span>{cachingStatusText}</span>
+                    <span>{cachingProgress}%</span>
+                  </div>
+                  <div className="w-full bg-space-3 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-flare h-full transition-all duration-200" style={{ width: `${cachingProgress}%` }} />
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClick();
+                    prepareForOfflinePlay();
+                  }}
+                  className="rounded border border-space-line bg-space-3 px-3 py-1.5 text-xs text-cream hover:border-flare transition flex items-center gap-1.5"
+                >
+                  <Download size={13} />
+                  <span>{offlineReady ? 'Verify & Refresh Offline Cache' : 'Prepare for Offline Play'}</span>
+                </button>
+              )}
+            </div>
+
             {/* Controls Guide Collapsible */}
             <details className="rounded-md border border-space-line/70 bg-space-2/60 p-3 text-xs text-dust">
-              <summary className="cursor-pointer font-medium text-cream hover:text-ember transition">
-                Simulation Controls & Operation Guidelines
+              <summary className="cursor-pointer font-medium text-cream hover:text-ember transition flex items-center gap-1.5">
+                <HelpCircle size={14} className="text-ember" /> Controls & how to play
               </summary>
               <div className="mt-3 space-y-2 border-t border-space-line/40 pt-2 leading-relaxed">
                 <p>
-                  <strong className="text-cream">Time Stepping:</strong> Simulation physics advance solely when you command (+1h, +6h, or auto-run). Physical equations never run on animation frame deltas.
+                  <strong className="text-cream">Time Stepping:</strong> Walking through the habitat uses NO mission time. Time advances only when you choose Wait (+1h / +6h) or execute focused equipment interventions.
                 </p>
                 <p>
                   <strong className="text-cream">Colony Overview:</strong> Inspect habitat modules, power demand, equipment health, and execute maintenance repairs from the central command console.
                 </p>
                 <p>
-                  <strong className="text-cream">Habitat Field Mode:</strong> Use <kbd className="kbd">WASD</kbd> to move, <kbd className="kbd">Shift</kbd> to run, and <kbd className="kbd">E</kbd> near equipment to inspect terminals.
+                  <strong className="text-cream">Habitat Field Mode:</strong> Use <kbd className="kbd">WASD</kbd> to move, <kbd className="kbd">Shift</kbd> to run, <kbd className="kbd">E</kbd> near equipment to inspect terminals, <kbd className="kbd">Tab</kbd> for objectives, and <kbd className="kbd">Esc</kbd> for the menu.
                 </p>
               </div>
             </details>
@@ -196,7 +306,7 @@ export function MissionBriefing({
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-cream">The Red Storm</h2>
                 <p className="mt-2 text-sm leading-relaxed text-dust">
-                  A regional Martian dust storm slashes solar power to 4.0 kW. Protect 4 crew members through 72 hours of resource constraints, manage battery reserves, and resolve a secondary water distillation pump failure.
+                  A regional Martian dust storm slashes solar power to 4.0 kW. Protect 4 crew members through 72 hours of resource constraints, manage battery reserves, and investigate a warning from the water system.
                 </p>
               </div>
 
@@ -224,7 +334,10 @@ export function MissionBriefing({
                   {(['cadet', 'engineer', 'commander'] as const).map((m) => (
                     <div
                       key={m}
-                      onClick={() => setMode(m)}
+                      onClick={() => {
+                        handleClick();
+                        setMode(m);
+                      }}
                       className={`cursor-pointer rounded-lg border p-3 transition flex flex-col justify-between ${
                         mode === m
                           ? 'border-flare bg-flare/10 text-cream shadow-sm'
@@ -260,7 +373,10 @@ export function MissionBriefing({
 
               <button
                 type="button"
-                onClick={() => setScreen('briefing')}
+                onClick={() => {
+                  handleClick();
+                  setScreen('briefing');
+                }}
                 className="start-mission inline-flex w-full items-center justify-between rounded-md bg-flare px-6 py-3.5 font-body text-sm font-bold text-flare-ink shadow-lg transition hover:bg-flare-hover"
               >
                 <span>View briefing</span>
@@ -288,7 +404,7 @@ export function MissionBriefing({
                 Four crew. One habitat. You are the mission commander.
               </p>
               <p className="mt-2 text-sm leading-relaxed text-dust">
-                Chryse Planitia, 2045. Atmospheric particulate has collapsed photovoltaic output to 4.0 kW. Your initial priority is evaluating the electrical power distribution board. Decide which optional loads to shed, maintain life-support heating, and prepare for downstream mechanical faults.
+                Mars, 2045. A dust storm has cut solar supply. You are the mission engineer. Visit the Power Room, east of the Central Hub, to investigate how the station uses energy. Then monitor the habitat and investigate any new warning.
               </p>
             </div>
 
@@ -296,19 +412,20 @@ export function MissionBriefing({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="flex items-center gap-2 rounded-lg border border-space-line bg-space-2 p-3 text-cream">
                 <Wind size={16} className="text-sky-400 shrink-0" />
-                <span>Keep ECLSS atmospheric scrubbers and heating active</span>
+                <span>Keep air, water and heating available</span>
               </div>
               <div className="flex items-center gap-2 rounded-lg border border-space-line bg-space-2 p-3 text-cream">
                 <Radio size={16} className="text-amber-400 shrink-0" />
-                <span>Diagnose telemetry alarms with recorded evidence</span>
+                <span>Investigate warnings using measurements</span>
               </div>
             </div>
 
             {/* Operational Station Selector */}
-            <div className="rounded-xl border border-space-line bg-space-2 p-5 space-y-3">
+            <details className="rounded-xl border border-space-line bg-space-2 p-5 space-y-3">
+              <summary className="cursor-pointer text-sm text-dust">Alternative starting view · optional</summary>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-cream flex items-center gap-1.5">
-                  <Compass size={14} className="text-ember" /> Choose Initial Command Station
+                  <Compass size={14} className="text-ember" /> Choose starting view
                 </span>
                 <span className="text-[11px] font-data text-dust">Switchable anytime</span>
               </div>
@@ -316,7 +433,10 @@ export function MissionBriefing({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setDestination('colony')}
+                  onClick={() => {
+                    handleClick();
+                    setDestination('colony');
+                  }}
                   className={`text-left p-3.5 rounded-lg border transition ${
                     destination === 'colony'
                       ? 'border-flare bg-flare/10 shadow'
@@ -328,7 +448,7 @@ export function MissionBriefing({
                       <Layers size={13} className="text-flare" /> Colony Mission Control
                     </span>
                     <span className="text-[10px] rounded bg-flare/20 px-1.5 py-0.2 font-data font-semibold text-flare">
-                      RECOMMENDED
+                      OVERVIEW
                     </span>
                   </div>
                   <p className="text-[11px] text-dust leading-normal">
@@ -338,7 +458,10 @@ export function MissionBriefing({
 
                 <button
                   type="button"
-                  onClick={() => setDestination('habitat')}
+                  onClick={() => {
+                    handleClick();
+                    setDestination('habitat');
+                  }}
                   className={`text-left p-3.5 rounded-lg border transition ${
                     destination === 'habitat'
                       ? 'border-flare bg-flare/10 shadow'
@@ -349,20 +472,23 @@ export function MissionBriefing({
                     <span className="text-xs font-bold text-cream flex items-center gap-1.5">
                       <BookOpen size={13} className="text-ember" /> Habitat Interior Walk
                     </span>
-                    <span className="text-[10px] font-data text-dust">Field View</span>
+                    <span className="text-[10px] font-data text-ember">RECOMMENDED</span>
                   </div>
                   <p className="text-[11px] text-dust leading-normal">
                     Walk through the habitat rooms as an astronaut and inspect equipment workbenches.
                   </p>
                 </button>
               </div>
-            </div>
+            </details>
 
             {/* Begin Mission Action */}
             <div className="pt-2">
               <button
                 type="button"
-                onClick={() => (destination === 'colony' ? onStart(mode) : onStart(mode, destination))}
+                onClick={() => {
+                  handleClick();
+                  onStart(mode, destination);
+                }}
                 className="start-mission inline-flex w-full sm:w-auto items-center justify-center gap-3 rounded-md bg-flare px-8 py-4 font-body text-base font-bold text-flare-ink shadow-xl transition hover:bg-flare-hover active:translate-y-px"
               >
                 <span>Begin Mission</span>
@@ -381,7 +507,7 @@ export function MissionBriefing({
 
             {/* Quick Controls Cheat-sheet */}
             <p className="briefing-controls text-xs text-dust flex items-center gap-2 pt-2 border-t border-space-line/40">
-              <kbd className="kbd">Mouse</kbd> Orbit & select · <kbd className="kbd">+1h / +6h</kbd> Advance clock · <kbd className="kbd">Esc</kbd> Menu
+              <kbd className="kbd">WASD</kbd> Move · <kbd className="kbd">E</kbd> Interact · <kbd className="kbd">Tab</kbd> Objectives · <kbd className="kbd">Esc</kbd> Return
             </p>
           </div>
         )}

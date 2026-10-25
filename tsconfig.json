@@ -31,9 +31,11 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-realism-prod/types/**/*.ts",
+    ".next-realism/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-realism/types/**/*.ts"
+    ".next-realism-release/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

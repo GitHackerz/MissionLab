@@ -30,12 +30,25 @@ export function nextRepairInstruction(state: MissionState): RepairInstruction | 
   const p = state.training?.recycler.procedure;
   if (!p) return null;
   const resuming = !p.maintenanceMode && !p.testReady && p.completedSteps.includes('maintenance-mode') && p.phase !== 'completed' && p.phase !== 'failed-verification';
-  const item = p.testReady ? REPAIR_STEPS.find(s => s.id === 'startup-test') : resuming ? REPAIR_STEPS.find(s => s.id === 'maintenance-mode') : REPAIR_STEPS.find(s => !p.completedSteps.includes(s.id));
+  let item = p.testReady ? REPAIR_STEPS.find(s => s.id === 'startup-test') : resuming ? REPAIR_STEPS.find(s => s.id === 'maintenance-mode') : REPAIR_STEPS.find(s => !p.completedSteps.includes(s.id));
+  let slot = proposedPart(state);
+  if (p.hatchOpen && p.completedSteps.includes('locate-component')) {
+    const bay = p.slots[slot];
+    const id: ProcedureStepId = bay.occupant === 'empty'
+      ? !p.held ? 'retrieve-spare' : !p.held.inspected || p.held.orientation !== 0 ? 'inspect-orient-spare' : 'install-component'
+      : bay.occupant === 'original' ? bay.retainers === 'locked' ? 'release-retainers' : 'remove-component'
+      : bay.retainers === 'released' ? 'secure-component' : 'close-hatch';
+    item = REPAIR_STEPS.find(step => step.id === id);
+    if (id === 'close-hatch') {
+      const loose = (Object.keys(p.slots) as ReplaceableId[]).find(id => p.slots[id].occupant !== 'empty' && p.slots[id].retainers === 'released');
+      if (loose) { slot = loose; item = REPAIR_STEPS.find(step => step.id === 'secure-component'); }
+    }
+  }
   if (!item) return null;
-  const slot = proposedPart(state);
   let step: TrainingStepAction;
   let label: string;
   let title = item.title, instruction = item.instruction;
+  if (item.id === 'secure-component' && slot !== proposedPart(state)) { title = `Secure the ${PART_LABEL[slot].toLowerCase()} too`; instruction = 'Another bay was released during the intervention. Lock its clips before closing the hatch.'; }
   switch (item.id) {
     case 'identify-equipment': step = { step: 'IDENTIFY_EQUIPMENT', moduleId: 'water-recycler' }; label = 'Identify recycler'; break;
     case 'review-isolation': step = { step: 'REVIEW_ISOLATION' }; label = 'Read safety checklist'; break;

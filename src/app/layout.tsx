@@ -8,11 +8,18 @@ const body = Lexend({ subsets: ['latin'], variable: '--font-body' });
 const data = JetBrains_Mono({ subsets: ['latin'], variable: '--font-data' });
 
 export const metadata: Metadata = {
-  title: 'MissionLab — Mars mission simulator for students',
+  title: 'MissionLab — Mars Astronaut Mission Trainer',
   description:
     'Keep four people alive on Mars for 72 hours. A 3D mission simulator that teaches how life-support systems depend on each other.',
-  icons: { icon: '/brand/logo-mark.png' },
+  manifest: '/manifest.webmanifest',
+  icons: { icon: '/icon.svg', apple: '/icons/icon-192.png' },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'MissionLab',
+  },
 };
+
 
 export default function RootLayout({
   children,

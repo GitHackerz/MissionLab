@@ -79,6 +79,24 @@ describe('progressive recycler workbench', () => {
     expect(useMissionStore.getState().missionState.training!.recycler.procedure.verification?.passed).toBe(true);
     expect(useMissionStore.getState().missionState.resources.sparePumps).toBe(spares);
   });
+  it('guides the chosen bay even after a different retainer was released in 3D', () => {
+    setup('filter-clogged'); diagnose('filter-clogged');
+    for (let i = 0; i < 8; i++) {
+      const action = screen.getByTestId('current-engine-action');
+      if (action.textContent?.startsWith('Locate ')) break;
+      fireEvent.click(action);
+    }
+    fireEvent.click(screen.getByTestId('current-engine-action'));
+    act(() => {
+      useMissionStore.getState().applyAction({ type: 'TRAINING_STEP', step: { step: 'SELECT_TOOL', tool: 'retainer-driver' } });
+      useMissionStore.getState().applyAction({ type: 'TRAINING_STEP', step: { step: 'RELEASE_RETAINERS', slot: 'pump-cartridge' } });
+    });
+    expect(screen.getByTestId('current-engine-action').textContent).toContain('Release clips');
+    repair();
+    expect(useMissionStore.getState().missionState.training!.recycler.procedure.verification?.passed).toBe(true);
+    expect(useMissionStore.getState().missionState.training!.recycler.procedure.slots['pump-cartridge'].retainers).toBe('locked');
+    expect(useMissionStore.getState().missionState.resources.sparePumps).toBe(1);
+  });
   it('reopens the same engine step after unmount, without replaying or resetting the procedure', () => {
     setup('pump-seized'); diagnose('pump-seized');
     fireEvent.click(screen.getByTestId('current-engine-action'));
@@ -91,13 +109,14 @@ describe('progressive recycler workbench', () => {
 });
 describe('training entry', () => {
   it('exposes only the available mission, explains guidance, and requires an explicit begin action', () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     const begin = vi.fn(); render(<MissionBriefing onStart={begin} />);
     fireEvent.click(screen.getByRole('button', { name: 'Start Training' }));
     expect(screen.getByText(/Not playable yet/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('radio', { name: 'engineer' }));
+    fireEvent.click(screen.getByRole('radio', { name: /^engineer/ }));
     fireEvent.click(screen.getByRole('button', { name: 'View briefing' }));
     expect(begin).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Begin Mission' }));
-    expect(begin).toHaveBeenCalledWith('engineer');
+    expect(begin).toHaveBeenCalledWith('engineer', 'habitat');
   });
 });

@@ -19,7 +19,8 @@ import {
 } from '@/simulation/engine';
 import { createSnapshot, forkMission, recordMissionAction } from '@/simulation/history';
 import { FIXTURES } from '@/simulation/fixtures';
-import { RED_STORM_CONFIG } from '@/simulation/config';
+import { ALL_MODULE_IDS } from '@/simulation/types';
+import { RED_STORM_CONFIG, validateConfig } from '@/simulation/config';
 
 /** Dev-only fixture switcher in the mission header (hidden in production builds). */
 export const FIXTURES_ENABLED = process.env.NODE_ENV !== 'production';
@@ -40,6 +41,31 @@ export function saveSessionToStorage(state: {
   }
 }
 
+/** Reject stale/corrupt local records before they reach the live UI or engine. */
+function isRestorableMission(value: unknown): value is MissionState {
+  if (!value || typeof value !== 'object') return false;
+  const m = value as MissionState;
+  const finite = (n: unknown) => typeof n === 'number' && Number.isFinite(n) && n >= 0;
+  if (typeof m.scenarioId !== 'string' || typeof m.branchId !== 'string' || !finite(m.hour) || !finite(m.durationHours) || m.durationHours <= 0 || m.hour > m.durationHours || !['running', 'success', 'failed', 'briefing'].includes(m.status) || typeof m.stormActive !== 'boolean') return false;
+  if (!m.resources || !['batteryKwh', 'batteryCapacityKwh', 'waterLiters', 'oxygenKg', 'foodRations', 'sparePumps'].every(key => finite(m.resources[key as keyof typeof m.resources]))) return false;
+  if (!m.modules || !ALL_MODULE_IDS.every(id => { const mod = m.modules[id]; return mod && mod.id === id && typeof mod.enabled === 'boolean' && finite(mod.powerDemandKw) && finite(mod.suppliedPowerKw) && finite(mod.health) && ['operational', 'warning', 'degraded', 'offline', 'repairing'].includes(mod.status); })) return false;
+  if (!finite(m.crewCount) || m.crewCount <= 0 || !finite(m.scienceScore)) return false;
+  if (!Array.isArray(m.events) || !m.events.every(e => e && typeof e.id === 'string' && typeof e.message === 'string' && finite(e.hour))) return false;
+  if (m.config) { try { validateConfig(m.config); } catch { return false; } }
+  const t = m.training;
+  if (t) {
+    const p = t.recycler?.procedure;
+    if (!['cadet', 'engineer', 'commander'].includes(t.mode) || !finite(t.minuteOfHour) || t.minuteOfHour >= 60 || !p || !Array.isArray(p.completedSteps) || !p.slots) return false;
+    if (!['available', 'investigating', 'diagnosis-recorded', 'preparing', 'intervention', 'verifying', 'completed', 'failed-verification'].includes(p.phase) || !['isolationReviewed', 'maintenanceMode', 'inactiveConfirmed', 'hatchOpen', 'testReady'].every(key => typeof p[key as keyof typeof p] === 'boolean')) return false;
+    if (p.held && (!['pump-cartridge', 'filter-cartridge', 'flow-sensor'].includes(p.held.part) || ![0, 90, 180, 270].includes(p.held.orientation) || typeof p.held.inspected !== 'boolean')) return false;
+    if (!['pump-cartridge', 'filter-cartridge', 'flow-sensor'].every(id => { const slot = p.slots[id as keyof typeof p.slots]; return slot && ['original', 'spare', 'empty'].includes(slot.occupant) && ['locked', 'released'].includes(slot.retainers); })) return false;
+    if (!t.inventory || !finite(t.inventory.filterCartridges) || !finite(t.inventory.flowSensors) || !Array.isArray(t.inspectedComponents) || !Array.isArray(t.log) || !t.log.every(e => e && finite(e.hour) && finite(e.minute) && typeof e.action === 'string' && typeof e.ok === 'boolean')) return false;
+    if (!Array.isArray(t.evidence) || !t.evidence.every(e => e && typeof e.id === 'string' && Array.isArray(e.readings) && e.readings.every(r => r && typeof r.label === 'string' && typeof r.unit === 'string' && finite(r.value) && finite(r.expectedMin) && finite(r.expectedMax)))) return false;
+    if (!Array.isArray(t.hypotheses) || !t.hypotheses.every(h => h && ['pump-seized', 'filter-clogged', 'sensor-drift'].includes(h.kind) && Array.isArray(h.evidenceIds))) return false;
+  }
+  return true;
+}
+
 export function loadSessionFromStorage(): {
   missionState: MissionState;
   history: MissionSnapshot[];
@@ -51,7 +77,7 @@ export function loadSessionFromStorage(): {
     const raw = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.missionState && Array.isArray(parsed.history)) {
+    if (parsed && isRestorableMission(parsed.missionState) && Array.isArray(parsed.history) && parsed.history.length > 0 && parsed.history.every((snap: MissionSnapshot) => snap && typeof snap.snapshotId === 'string' && isRestorableMission(snap.state)) && (!parsed.branches || Array.isArray(parsed.branches) && parsed.branches.every((branch: MissionBranch) => branch && Array.isArray(branch.snapshots) && branch.snapshots.length > 0 && branch.snapshots.every(snap => isRestorableMission(snap.state))))) {
       return parsed;
     }
   } catch {
@@ -217,6 +243,7 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
         availableActions: getAvailableActions(result.state), history: transition.history,
         ...(result.feedback || get().lastFeedback ? { lastFeedback: result.feedback ?? null } : {}) });
     } else if (result.feedback || result.state !== missionState) {
+      if (result.state !== missionState) saveSessionToStorage({ missionState: result.state, history, branches: get().branches, trainingMode: get().trainingMode });
       // Rejected training actions still return a state with the rejection logged as learning evidence.
       set({ lastFeedback: result.feedback ?? { kind: 'rejected', title: 'Not possible', body: result.reason },
         ...(result.state !== missionState ? { missionState: result.state } : {}) });
