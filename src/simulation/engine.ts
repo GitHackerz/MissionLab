@@ -29,7 +29,8 @@ export function createInitialMission(
     hour: 0,
     durationHours: config.durationHours,
     status: 'running',
-    stormActive: false,
+    // Mission 01 opens under the dust storm (the briefing is about surviving it).
+    stormActive: true,
     crewCount: config.crewCount,
     resources: {
       batteryKwh: config.initialResources.batteryKwh,
@@ -47,6 +48,14 @@ export function createInitialMission(
         type: 'MISSION_INITIALIZED',
         severity: 'info',
         message: `${config.title} initialized. Objective: Keep 4 crew members safe for ${config.durationHours} hours.`,
+      },
+      {
+        id: 'evt-storm-arrival',
+        hour: 0,
+        type: 'DUST_STORM_ARRIVAL',
+        severity: 'warning',
+        moduleId: 'solar-array',
+        message: 'Martian dust storm arrived. Solar generation collapsed from 10.0 kW to 4.0 kW.',
       },
     ],
     scienceScore: 0,

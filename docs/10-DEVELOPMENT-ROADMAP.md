@@ -117,3 +117,10 @@ Milestone 5: Polish, Rehearsal & Pitch Defense
 - **T0 (done):** component model, three faults, evidence, hypotheses, 16-step validated procedure, engine verification, forecast, assessment, tests.
 - **T1 (done):** 3D recycler service view, tools, spares, hotspots, camera transition; Training / Power / Debrief tabs; rewind to decisions with comparison.
 - **T2 (next):** guided onboarding sequence, per-step coach overlays, sound-free alternatives for all cues, additional faults, more modules with procedures, greenhouse experiments, radiation shelter scenario, touch and keyboard polish for the 3D service view, profiling on low-end GPUs.
+
+---
+
+## Playable Habitat Milestones
+
+- **P1 (done):** astronaut, controller with collision, follow camera, compact interior, interaction framework, six tasks, water-recycler vertical slice, tests, docs.
+- **P2 (next):** licensed rigged character with clips, touch controls, more interior tasks (research lab, radiation shelter), audio-free feedback polish, profiling on low-end GPUs.

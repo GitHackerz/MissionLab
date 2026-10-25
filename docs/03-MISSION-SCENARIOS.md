@@ -101,7 +101,7 @@ These scenarios illustrate how the MissionLab architecture extends to a curricul
 
 ## Training Update: Mission 01 as implemented
 
-- Storm arrives at **Hour 1** (the first simulated step already runs at 4.0 kW). The Hour 0 trigger in the original schedule could never fire.
+- The mission opens **under the dust storm** (`stormActive` is true at Hour 0, solar 4.0 kW, with a logged arrival event). The original Hour 0 scheduled trigger could never fire.
 - Hour 30: the engine reports only the **symptom** ("recovery below expected range"). The configured root cause (default pump cartridge; filter obstruction and sensor drift are also supported) must be diagnosed from evidence.
 - A repair is the validated maintenance procedure (about 2 simulated hours, one spare part), not a 4-hour button. Wrong replacements consume spares and fail verification.
 - **Success now also requires** water, oxygen and battery to end at or above their safety thresholds (as the Resource Integrity Directive already stated). An ignored recycler fault therefore ends in failure (water below 14 L).

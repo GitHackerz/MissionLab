@@ -7,7 +7,10 @@ import { MissionHeader } from '@/features/mission-ui/components/MissionHeader';
 import { ResourceHud } from '@/features/mission-ui/components/ResourceHud';
 import { SidePanel } from '@/features/mission-ui/components/SidePanel';
 import { FeedbackToast } from '@/features/mission-ui/components/FeedbackToast';
+import { useExploreStore } from '@/features/explore/store';
 import { EventTimeline } from '@/features/mission-ui/components/EventTimeline';
+
+const HabitatExplorer = dynamic(() => import('@/features/explore/ui/HabitatExplorer'), { ssr: false });
 
 // Dynamically import Three.js Scene to ensure SSR safety with WebGL
 const HabitatScene = dynamic(
@@ -26,7 +29,11 @@ const HabitatScene = dynamic(
 );
 
 export default function MissionControlPage() {
+  const worldMode = useExploreStore((s) => s.worldMode);
+  const enterHabitat = useExploreStore((s) => s.enterHabitat);
   const { missionState, selectedModuleId, selectModule, viewMode, setViewMode, applyAction, selectedComponentId, selectComponent } = useMissionStore();
+
+  if (worldMode === 'habitat') return <HabitatExplorer />;
 
   return (
     <main className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -51,6 +58,13 @@ export default function MissionControlPage() {
             onSelectComponent={selectComponent}
           />
           <FeedbackToast />
+          <button
+            type="button"
+            onClick={enterHabitat}
+            className="absolute bottom-14 left-1/2 z-10 -translate-x-1/2 rounded-full border border-sky-400/60 bg-black/75 px-4 py-2 text-xs font-semibold text-sky-100 shadow-lg backdrop-blur hover:bg-sky-950"
+          >
+            Explore the habitat as an astronaut
+          </button>
         </section>
 
         {/* Selected Habitat Subsystem Inspector Panel */}

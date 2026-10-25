@@ -82,7 +82,11 @@ Header fixture **Demo: Recycler Fault (engine, 30h)** applies a load-shedding pl
 
 Fallback if WebGL fails: the scene shows a module list; the Training tab contains every action as buttons, so the whole mission is playable without 3D.
 
-## 10. Acceptance status
+## 10. Playable habitat
+
+The same training mechanics are reachable by walking to the equipment: see [17-PLAYABLE-HABITAT.md](17-PLAYABLE-HABITAT.md).
+
+## 11. Acceptance status
 
 | Criterion | Status |
 |---|---|

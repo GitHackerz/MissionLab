@@ -146,3 +146,9 @@ To maintain high hackathon velocity and avoid unnecessary infrastructure failure
 ## Training Layer
 
 Training logic extends the engine; it adds no second state store. The 3D scene emits typed `TrainingAction` requests (`onTrainingAction`), `applyMissionAction` validates and returns the next state plus educational feedback, and the Zustand store publishes it to both the 3D scene and the UI. See [16-TRAINING-DESIGN.md](16-TRAINING-DESIGN.md) §2.
+
+---
+
+## Playable Habitat Layer
+
+`src/features/explore/**` adds a second world mode (interior, third-person) beside the colony overview. Navigation state is isolated in its own store; mission truth still flows only through the engine and mission store. See [17-PLAYABLE-HABITAT.md](17-PLAYABLE-HABITAT.md).

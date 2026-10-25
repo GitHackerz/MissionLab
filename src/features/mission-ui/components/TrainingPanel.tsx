@@ -77,7 +77,7 @@ const STEPS: StepRow[] = [
   { id: 'startup-test', label: '16. Run the startup test', detail: 'Then compare readings with expected ranges.' },
 ];
 
-export const TrainingPanel: React.FC = () => {
+export const TrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { missionState, applyAction, viewMode, setViewMode, selectModule, selectedComponentId, selectComponent } = useMissionStore();
   const t = missionState.training;
   const [slot, setSlot] = useState<ReplaceableId | null>(null);
@@ -169,11 +169,13 @@ export const TrainingPanel: React.FC = () => {
 
       {/* Service view launcher + component browser */}
       <Section title="Water recycler" icon={<Microscope className="h-3.5 w-3.5 text-orange-400" />}>
-        <button type="button" onClick={viewMode === 'service' ? () => setViewMode('colony') : enterService} className="w-full rounded bg-sky-700 px-3 py-2 font-semibold text-white hover:bg-sky-600">
-          {viewMode === 'service' ? 'Leave service view (back to colony)' : 'Enter service view (3D)'}
-        </button>
+        {!embedded && (
+          <button type="button" onClick={viewMode === 'service' ? () => setViewMode('colony') : enterService} className="w-full rounded bg-sky-700 px-3 py-2 font-semibold text-white hover:bg-sky-600">
+            {viewMode === 'service' ? 'Leave service view (back to colony)' : 'Enter service view (3D)'}
+          </button>
+        )}
         <p className="text-[11px] leading-snug text-stone-400">
-          In the service view, click parts to learn what they do, read instruments, pick tools and swap cartridges. Everything here can also be done with the buttons below.
+          {embedded ? 'Click the machine in the 3D view to learn what each part does, read instruments, pick tools and swap cartridges.' : 'In the service view, click parts to learn what they do, read instruments, pick tools and swap cartridges.'} Everything can also be done with the buttons here.
         </p>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Recycler components">
           {(Object.keys(COMPONENT_INFO) as RecyclerComponentId[]).map((id) => (

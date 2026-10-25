@@ -115,3 +115,9 @@ When `missionState.stormActive` becomes `true`:
 - Cadet hint outlines follow the learner's own diagnosis (`nextHintKey`), never the real fault.
 - Circulation pulses on the output line scale with the true recovery rate (a cue, not a reading).
 - Hotspot outlines use `raycast={() => null}`: three.js line raycasting has a large default threshold that otherwise creates huge invisible hit areas.
+
+---
+
+## 9. Interior Habitat
+
+The playable interior (rooms, collision, camera, interaction prompts, task cameras) is specified in [17-PLAYABLE-HABITAT.md](17-PLAYABLE-HABITAT.md). The detailed water recycler model of section 8 is reused unchanged inside the Life Support room.

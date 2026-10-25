@@ -14,7 +14,7 @@ const STYLE = {
 const ICON = { info: 'ℹ', success: '✓', warning: '▲', rejected: '✗' } as const;
 
 /** Educational feedback for the last training action: explains why something worked or was refused. */
-export const FeedbackToast: React.FC = () => {
+export const FeedbackToast: React.FC<{ className?: string }> = ({ className = 'bottom-14' }) => {
   const { lastFeedback, clearFeedback } = useMissionStore();
   useEffect(() => {
     if (!lastFeedback) return;
@@ -23,7 +23,7 @@ export const FeedbackToast: React.FC = () => {
   }, [lastFeedback, clearFeedback]);
   if (!lastFeedback) return null;
   return (
-    <div data-testid="feedback-toast" role={lastFeedback.kind === 'rejected' ? 'alert' : 'status'} className={`absolute bottom-14 left-1/2 z-20 w-[min(34rem,92%)] -translate-x-1/2 rounded border p-3 shadow-xl backdrop-blur ${STYLE[lastFeedback.kind]}`}>
+    <div data-testid="feedback-toast" role={lastFeedback.kind === 'rejected' ? 'alert' : 'status'} className={`absolute ${className} left-1/2 z-20 w-[min(34rem,92%)] -translate-x-1/2 rounded border p-3 shadow-xl backdrop-blur ${STYLE[lastFeedback.kind]}`}>
       <div className="flex items-start gap-2 text-xs">
         <span aria-hidden className="mt-0.5 font-bold">{ICON[lastFeedback.kind]}</span>
         <div className="flex-1">

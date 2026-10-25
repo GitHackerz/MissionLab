@@ -82,3 +82,9 @@ pnpm build
 - `src/features/habitat-3d/__tests__/serviceInteractions.test.ts`: hotspot → engine request mapping and cadet hints.
 - `src/features/mission-ui/__tests__/panels.test.tsx`: evidence collection, rejections, full repair through the UI buttons, planner apply, rewind with comparison.
 - WebGL interaction was verified manually in a browser with Playwright (real clicks through the 3D hotspots); there is no automated WebGL test in CI.
+
+---
+
+## Playable Habitat Tests
+
+`src/features/explore/__tests__/core.test.ts` (collision, layout, targeting, task lifecycle) and `input-ui.test.tsx` (input handling, stuck-key prevention, listener cleanup, task surfaces and mission-state persistence without WebGL). Movement, camera and 3D task interaction were verified manually in a browser (Playwright); they are not part of CI.

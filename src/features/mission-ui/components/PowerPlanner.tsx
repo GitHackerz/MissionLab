@@ -14,7 +14,47 @@ const CATEGORY: Record<string, string> = {
   optional: 'text-sky-300 border-sky-500/40 bg-sky-950/40',
 };
 
-export const PowerPlanner: React.FC = () => {
+/** Single-line wiring diagram: sun -> panels -> bus -> battery, with one breaker per load. Line width follows kW. */
+const PowerSchematic: React.FC<{ generationKw: number; demandKw: number; batteryFrac: number; storm: boolean; loads: { id: string; label: string; kw: number; on: boolean; category: string }[] }> = ({ generationKw, demandKw, batteryFrac, storm, loads }) => {
+  const rowY = (i: number) => 28 + i * 44;
+  const tone: Record<string, string> = { critical: '#f87171', essential: '#fbbf24', optional: '#38bdf8' };
+  return (
+    <svg viewBox="0 0 540 200" className="w-full rounded border border-mars-border bg-black/40" role="img" aria-label={`Power schematic: ${generationKw} kilowatts generated, ${demandKw} kilowatts demanded, battery ${Math.round(batteryFrac * 100)} percent`}>
+      {/* solar array */}
+      <rect x="10" y="30" width="86" height="54" rx="4" fill="#1e3a8a" stroke="#60a5fa" />
+      <path d="M10 48h86M10 66h86M39 30v54M68 30v54" stroke="#60a5fa" strokeWidth="1" opacity=".6" />
+      <text x="53" y="102" textAnchor="middle" fontSize="11" fill="#cbd5e1">Solar array</text>
+      <text x="53" y="116" textAnchor="middle" fontSize="12" fill="#fcd34d" fontFamily="monospace">{generationKw.toFixed(1)} kW</text>
+      <text x="53" y="130" textAnchor="middle" fontSize="9" fill="#94a3b8">{storm ? '☁ dust storm' : '☀ clear sky'}</text>
+      {/* generation -> bus */}
+      <line x1="96" y1="57" x2="250" y2="57" stroke="#fcd34d" strokeWidth={Math.max(2, generationKw * 1.2)} strokeLinecap="round" />
+      {/* bus */}
+      <rect x="250" y="20" width="10" height="164" rx="3" fill="#475569" />
+      <text x="255" y="196" textAnchor="middle" fontSize="9" fill="#94a3b8">power bus</text>
+      {/* battery */}
+      <line x1="255" y1="150" x2="150" y2="150" stroke="#10b981" strokeWidth="3" strokeDasharray="5 3" />
+      <rect x="100" y="132" width="50" height="38" rx="4" fill="#0f172a" stroke="#10b981" />
+      <rect x="104" y={166 - 30 * batteryFrac} width="42" height={30 * batteryFrac} fill="#10b981" opacity=".8" />
+      <text x="125" y="184" textAnchor="middle" fontSize="10" fill="#cbd5e1">Battery {Math.round(batteryFrac * 100)}%</text>
+      {/* loads */}
+      {loads.map((l, i) => (
+        <g key={l.id}>
+          <line x1="260" y1={rowY(i) + 10} x2="372" y2={rowY(i) + 10} stroke={l.on ? '#fcd34d' : '#475569'} strokeWidth={l.on ? Math.max(2, l.kw * 1.6) : 2} strokeDasharray={l.on ? undefined : '4 4'} strokeLinecap="round" />
+          <g transform={`translate(372 ${rowY(i) - 2})`}>
+            <rect width="24" height="24" rx="3" fill="#0f172a" stroke={l.on ? '#10b981' : '#ef4444'} />
+            <path d={l.on ? 'M5 12l5 5 9-10' : 'M6 6l12 12M18 6L6 18'} stroke={l.on ? '#10b981' : '#ef4444'} strokeWidth="2.5" fill="none" />
+          </g>
+          <rect x="404" y={rowY(i) - 6} width="126" height="32" rx="4" fill="#0f172a" stroke={tone[l.category]} opacity={l.on ? 1 : 0.55} />
+          <text x="411" y={rowY(i) + 8} fontSize="10" fill="#e2e8f0">{l.label.split(' (')[0]}</text>
+          <text x="411" y={rowY(i) + 21} fontSize="9" fill={tone[l.category]} fontFamily="monospace">{l.category} · {l.on ? `${l.kw.toFixed(1)} kW` : 'off'}</text>
+        </g>
+      ))}
+      <text x="470" y="196" textAnchor="middle" fontSize="9" fill="#94a3b8">demand {demandKw.toFixed(1)} kW</text>
+    </svg>
+  );
+};
+
+export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = false }) => {
   const { missionState, applyAction } = useMissionStore();
   const live = useMemo(() => currentPlan(missionState), [missionState]);
   const [draft, setDraft] = useState<Record<PlanLoadId, boolean> | null>(null);
@@ -42,6 +82,16 @@ export const PowerPlanner: React.FC = () => {
           Solar panels make power only while the sun reaches them. The battery stores the difference. Choose which loads to keep running, check the forecast, then apply.
         </p>
       </div>
+
+      {schematic && (
+        <PowerSchematic
+          generationKw={generation}
+          demandKw={forecast.demandKw}
+          batteryFrac={missionState.resources.batteryKwh / missionState.resources.batteryCapacityKwh}
+          storm={missionState.stormActive}
+          loads={PLAN_LOADS.map((l) => ({ id: l.id, label: l.label, kw: missionState.modules[l.id].powerDemandKw, on: plan[l.id], category: l.category }))}
+        />
+      )}
 
       <div className="grid grid-cols-3 gap-2 font-mono">
         <div className="rounded border border-mars-border bg-black/30 p-2">

@@ -109,3 +109,11 @@ pnpm build
 - **Habib:** `modules/WaterRecycler.tsx`, `components/Hotspot.tsx`, `utils/serviceInteractions.ts`, camera service view, flow and maintenance animation.
 - **Amina:** `TrainingPanel`, `PowerPlanner`, `MissionDebrief`, `SidePanel`, `FeedbackToast`, store feedback and rewind.
 - Integration edits to others' files are listed in [16-TRAINING-DESIGN.md](16-TRAINING-DESIGN.md) §2 and need owner review.
+
+---
+
+## Playable Habitat: ownership
+
+- **Habib:** `src/features/explore/**` (character, controller, camera, interior, interaction framework, task lifecycle) plus `SpriteLabel`.
+- **Kammoun:** no engine change was required. The habitat uses the existing procedure engine, `forecastPlan` and `APPLY_POWER_PLAN`. One rule change in this phase: the mission opens with `stormActive: true` and a logged arrival event.
+- **Amina:** the task panels are reused (`TrainingPanel` gained an `embedded` flag, `PowerPlanner` a `schematic` flag, `FeedbackToast` a `className`); `page.tsx` hosts the entry button and switches between colony and habitat.

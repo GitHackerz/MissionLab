@@ -87,3 +87,9 @@ When a mission concludes at Hour 72 or suffers terminal failure, the screen tran
 ## Training Workspace
 
 The right-hand column is now four tabs: **Training** (objective, mode, component browser, evidence notebook, diagnosis, repair plan, 16-step procedure with buttons, verification), **Power** (switches, live engine forecast, risks, apply), **Systems** (original inspector) and **Debrief** (rated learning dimensions, consequences, causal chain, decision list with rewind, comparison). A feedback toast explains every accepted or rejected training action. Status is never colour-only (shapes, text labels, ✓/✗). All 3D actions have button equivalents for keyboard and no-WebGL use.
+
+---
+
+## Habitat Exploration UI
+
+Full-screen habitat view with a minimal HUD (room, objective, resource chips, clock), a controls guide, an interaction prompt and focused task surfaces (drawer beside the 3D machine, or a near-full-screen panel for schematic tasks). The colony dashboard is not shown over tasks. Details: [17-PLAYABLE-HABITAT.md](17-PLAYABLE-HABITAT.md).

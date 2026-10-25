@@ -3,7 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { ThreeEvent, useFrame } from '@react-three/fiber';
-import { Html, useCursor } from '@react-three/drei';
+import { useCursor } from '@react-three/drei';
+import { SpriteLabel } from './SpriteLabel';
 import { Vec3 } from '../constants/layout';
 
 const DRAG_THRESHOLD_PX = 5;
@@ -74,11 +75,7 @@ export const Hotspot: React.FC<HotspotProps> = ({ size, position, rotation, labe
           <lineSegments geometry={edges} renderOrder={10} raycast={() => null}>
             <lineBasicMaterial ref={material} color="#fbbf24" transparent opacity={0} depthTest={false} toneMapped={false} />
           </lineSegments>
-          {hovered && (
-            <Html position={[0, size[1] / 2 + 0.12, 0]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
-              <div className="whitespace-nowrap rounded border border-white/10 bg-black/80 px-2 py-0.5 text-xs font-medium text-stone-100">{label}</div>
-            </Html>
-          )}
+          {hovered && <SpriteLabel position={[0, size[1] / 2 + 0.2, 0]} text={label} heightPx={24} />}
         </>
       )}
     </group>
