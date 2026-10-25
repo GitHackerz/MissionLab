@@ -21,6 +21,9 @@ import { createSnapshot, forkMission, recordMissionAction } from '@/simulation/h
 import { FIXTURES } from '@/simulation/fixtures';
 import { RED_STORM_CONFIG } from '@/simulation/config';
 
+/** Dev-only fixture switcher in the mission header (hidden in production builds). */
+export const FIXTURES_ENABLED = process.env.NODE_ENV !== 'production';
+
 export interface MissionStore {
   // State
   missionState: MissionState;
@@ -36,9 +39,14 @@ export interface MissionStore {
   /** 'service' = detailed equipment view of the water recycler in the colony scene. */
   viewMode: 'colony' | 'service';
   selectedComponentId: RecyclerComponentId | null;
+  /** Auto-run flag; the guest lock screen switches it off when the trial ends. */
+  autoRunning: boolean;
 
   // Actions
   enableTraining: () => void;
+  setAutoRunning: (running: boolean) => void;
+  /** Starts the training mission (used by the mission-ui briefing). */
+  startMission: () => void;
   selectComponent: (id: RecyclerComponentId | null) => void;
   setViewMode: (mode: 'colony' | 'service') => void;
   clearFeedback: () => void;
@@ -64,7 +72,10 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
   lastFeedback: null,
   viewMode: 'colony',
   selectedComponentId: null,
+  autoRunning: false,
 
+  setAutoRunning: (running) => set({ autoRunning: running }),
+  startMission: () => get().enableTraining(),
   enableTraining: () => {
     if (get().trainingMode) return;
     const state = createTrainingMission(RED_STORM_CONFIG);

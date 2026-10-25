@@ -1,0 +1,33 @@
+# Local services for MissionLab. Start with: pnpm db:up
+#   - PostgreSQL 16 on localhost:5432 (accounts, sessions, tokens)
+#   - Mailpit on localhost:1025 (SMTP) with an inbox UI at http://localhost:8025
+# Both run offline, so the live demo never depends on an external service.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: missionlab-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: missionlab
+      POSTGRES_PASSWORD: missionlab
+      POSTGRES_DB: missionlab
+    ports:
+      - "5432:5432"
+    volumes:
+      - missionlab-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U missionlab -d missionlab"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: missionlab-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  missionlab-pgdata:

@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { useMissionStore } from '@/state/missionStore';
+import { FIXTURES_ENABLED, useMissionStore } from '@/state/missionStore';
 import { Play, RotateCcw, FastForward, AlertTriangle, ShieldCheck, Skull } from 'lucide-react';
 
-export const MissionHeader: React.FC = () => {
+export const MissionHeader: React.FC<{ account?: React.ReactNode }> = ({ account }) => {
   const { missionState, advanceTime, resetMission, loadFixture, activeFixtureKey } =
     useMissionStore();
 
@@ -60,7 +60,7 @@ export const MissionHeader: React.FC = () => {
       </div>
 
       {/* Center: Mission Time Clock */}
-      <div className="flex items-center space-x-3 bg-black/40 border border-mars-border px-4 py-1.5 rounded-lg">
+      <div id="tour-clock" className="flex items-center space-x-3 bg-black/40 border border-mars-border px-4 py-1.5 rounded-lg">
         <div className="text-right">
           <div className="text-[10px] uppercase font-mono tracking-wider text-stone-400">
             Simulation Clock
@@ -102,25 +102,30 @@ export const MissionHeader: React.FC = () => {
         </div>
       </div>
 
-      {/* Right: Development / Test Fixtures Preview Switcher */}
-      <div className="flex items-center space-x-2">
-        <span className="text-[11px] font-mono uppercase text-stone-400">
-          Dev Fixture:
-        </span>
-        <select
-          value={activeFixtureKey}
-          onChange={(e) => loadFixture(e.target.value)}
-          className="bg-black/70 border border-mars-border text-xs rounded px-2.5 py-1 text-stone-300 focus:outline-none focus:border-orange-500 font-mono"
-        >
-          <option value="initial">Live Engine State</option>
-          <option value="demo-fault">Demo: Recycler Fault (engine, 30h)</option>
-          <option value="normal">Fixture: Normal</option>
-          <option value="storm">Fixture: Storm (4h)</option>
-          <option value="water-recycler-degraded">Fixture: Recycler Fault (30h)</option>
-          <option value="critical-energy">Fixture: Critical Energy (22h)</option>
-          <option value="success">Fixture: Mission Success (72h)</option>
-          <option value="failed">Fixture: Life Support Blackout</option>
-        </select>
+      {/* Right: dev-only fixture switcher, then the account area */}
+      <div className="flex items-center gap-3">
+        {FIXTURES_ENABLED && (
+          <div className="flex items-center space-x-2">
+            <span className="text-[11px] font-mono uppercase text-stone-400">
+              Dev Fixture:
+            </span>
+            <select
+              value={activeFixtureKey}
+              onChange={(e) => loadFixture(e.target.value)}
+              className="bg-black/70 border border-mars-border text-xs rounded px-2.5 py-1 text-stone-300 focus:outline-none focus:border-orange-500 font-mono"
+            >
+              <option value="initial">Live Engine State</option>
+              <option value="demo-fault">Demo: Recycler Fault (engine, 30h)</option>
+              <option value="normal">Fixture: Normal</option>
+              <option value="storm">Fixture: Storm (4h)</option>
+              <option value="water-recycler-degraded">Fixture: Recycler Fault (30h)</option>
+              <option value="critical-energy">Fixture: Critical Energy (22h)</option>
+              <option value="success">Fixture: Mission Success (72h)</option>
+              <option value="failed">Fixture: Life Support Blackout</option>
+            </select>
+          </div>
+        )}
+        {account}
       </div>
     </header>
   );
