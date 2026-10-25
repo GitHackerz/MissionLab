@@ -165,5 +165,11 @@ export function buildLearnerContext(m: MissionState, view: ViewState): LearnerCo
 
 /** Targets offered to the model for this request (the server re-validates against the registry). */
 export function allowedTargetsFor(ctx: LearnerContext, intent: NovaIntent, hintLevel: HintLevel): string[] {
+  if (ctx.atmosphere) {
+    // The atmospheric missions happen at one console (and the mission console once the outcome is known).
+    const pressure = ctx.missionId.includes('pressure');
+    const ids = [pressure ? 'station:crew-terminal' : 'station:air-unit', pressure ? 'room:hub' : 'room:life-support', ...(ctx.revealed ? ['station:mission-console'] : [])];
+    return ids.filter((id) => canTarget(id, { hintLevel, intent, revealed: ctx.revealed }));
+  }
   return NOVA_TARGET_IDS.filter((id) => canTarget(id, { hintLevel, intent, revealed: ctx.revealed }));
 }

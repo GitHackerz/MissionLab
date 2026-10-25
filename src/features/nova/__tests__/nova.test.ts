@@ -406,6 +406,14 @@ describe('NOVA in the atmospheric missions', () => {
     expect(buildLearnerContext(m, view).debrief?.fault).toBe('seal leak');
   });
 
+  it('offers only the mission console as a pointing target (never recycler parts or unrelated stations)', () => {
+    for (const [id, fault, station] of [['mission-02-pressure-drop', 'seal-leak', 'station:crew-terminal'], ['mission-03-silent-air', 'fan-failure', 'station:air-unit']] as const) {
+      const ctx = buildLearnerContext(createRegisteredMission(id, fault), view);
+      for (const level of [0, 1, 2, 3] as const) expect(allowedTargetsFor(ctx, 'hint', level)).toContain(station);
+      expect(allowedTargetsFor(ctx, 'hint', 3).some((t) => t.startsWith('part:') || t === 'station:water-recycler' || t === 'station:mission-console')).toBe(false);
+    }
+  });
+
   it('raises one proactive alarm that points at the console', () => {
     const m = createRegisteredMission('mission-03-silent-air', 'fan-failure');
     const advanced = advanceMission(m, 1);
