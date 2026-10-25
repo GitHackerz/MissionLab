@@ -81,3 +81,9 @@ When a mission concludes at Hour 72 or suffers terminal failure, the screen tran
 - **Resource Margin Gauges:** Minimum battery, water, and oxygen margins reached during the run.
 - **Timeline Rewind Trigger:** Interactive snapshot slider allowing the student to rewind to any decision point and re-run the mission on an alternate branch.
 - **Side-by-Side Comparison:** Comparison table displaying Branch A vs Branch B telemetry deltas.
+
+---
+
+## Training Workspace
+
+The right-hand column is now four tabs: **Training** (objective, mode, component browser, evidence notebook, diagnosis, repair plan, 16-step procedure with buttons, verification), **Power** (switches, live engine forecast, risks, apply), **Systems** (original inspector) and **Debrief** (rated learning dimensions, consequences, causal chain, decision list with rewind, comparison). A feedback toast explains every accepted or rejected training action. Status is never colour-only (shapes, text labels, ✓/✗). All 3D actions have button equivalents for keyboard and no-WebGL use.

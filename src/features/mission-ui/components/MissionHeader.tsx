@@ -113,6 +113,7 @@ export const MissionHeader: React.FC = () => {
           className="bg-black/70 border border-mars-border text-xs rounded px-2.5 py-1 text-stone-300 focus:outline-none focus:border-orange-500 font-mono"
         >
           <option value="initial">Live Engine State</option>
+          <option value="demo-fault">Demo: Recycler Fault (engine, 30h)</option>
           <option value="normal">Fixture: Normal</option>
           <option value="storm">Fixture: Storm (4h)</option>
           <option value="water-recycler-degraded">Fixture: Recycler Fault (30h)</option>

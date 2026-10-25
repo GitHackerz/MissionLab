@@ -90,3 +90,28 @@ When `missionState.stormActive` becomes `true`:
 - **Draw Call Management:** Instanced geometries or merged static meshes where possible. Total scene draw calls $< 40$.
 - **Texture Budgets:** Max $1024 \times 1024$ resolution for any external GLB textures.
 - **SSR Safety:** `HabitatScene` is dynamically loaded via Next.js `dynamic(..., { ssr: false })` with a clean CSS-based loading placeholder.
+
+---
+
+## 7. Implementation Notes (Phase 1-5 build)
+
+**Structure** (`src/features/habitat-3d/`): `HabitatScene.tsx` (public entry, WebGL check, error boundary, DOM overlay), `components/` (environment, lighting, sky, dust storm, camera, selection, beacons, infrastructure), `modules/` (one file per `ModuleId`), `utils/visualState.ts` (pure state → visual adapters), `constants/` (layout, status visuals), `__tests__/`.
+
+**Documented deviations from the sections above**
+- *Fog/sky colour:* clear-sky haze is a lighter dusty salmon (`#c88a62`) rather than `#26120d`, so the day scene reads as Mars instead of night. Storm haze is `#7a3a22`. Fog densities are `0.015` clear and `0.042` storm (doc: `0.045`) to keep module silhouettes legible.
+- *Draw calls:* the `< 40` budget is not met. Static meshes are merged per module and material at mount (`BatchedStatic`); a dev measurement at 1440x900 was about 160 calls (including the shadow pass) and about 77k triangles. Frame pacing, not call count, was the acceptance criterion.
+- *Storm phases:* `MissionState` only exposes the boolean `stormActive`. The scene eases a render-only 0..1 intensity toward it (about 2 s up, 3 s down), which reads as approaching / active / recovering. No timer drives gameplay and nothing is written back.
+- *Resource-driven indicators:* only values the state already carries are used: battery bank LED strip (`batteryKwh / batteryCapacityKwh`), solar dust (`health`), and module `status`. Water, oxygen and food have no capacity in the contract, so no tank levels are drawn.
+- *Status is never colour-only:* beacon shape changes with status (circle, triangle, diamond, square, ring), hovered/selected modules show a text label with the status word, and a DOM status key sits over the viewport.
+- *Selection:* one handler group per module with an invisible hit proxy. Clicking empty ground does nothing, because `onSelectModule` has no `null` form in the contract. Double-click focuses; selection changes re-centre the orbit target without changing the viewing angle.
+- *Dev only:* `window.__habitatDebug` (renderer, scene, camera) is set outside production builds for profiling.
+
+---
+
+## 8. Equipment Service View (water recycler)
+
+- `viewMode="service"` moves the camera to the recycler's west-facing front and makes **parts** selectable instead of modules: wastewater tank, pump / filter / flow-sensor cartridges (via port lights when the hatch is closed), pressure gauges, treatment stage, clean tank, hatch, control console, spare-parts tray, tool rack, retainer clips, pull handles and the part in hand.
+- Every click maps to a typed request in `utils/serviceInteractions.ts` (`actionForHotspot`), e.g. console → `ENTER_MAINTENANCE_MODE` / `CONFIRM_INACTIVE` / `RESTORE_TEST_READY` / `RUN_STARTUP_TEST` by state. The engine validates; the scene only animates toward `training.recycler.procedure` (hatch swing, cartridge slide, clip colour and rotation, held-part orientation).
+- Cadet hint outlines follow the learner's own diagnosis (`nextHintKey`), never the real fault.
+- Circulation pulses on the output line scale with the true recovery rate (a cue, not a reading).
+- Hotspot outlines use `raycast={() => null}`: three.js line raycasting has a large default threshold that otherwise creates huge invisible hit areas.

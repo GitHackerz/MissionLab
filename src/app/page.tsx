@@ -5,7 +5,8 @@ import dynamic from 'next/dynamic';
 import { useMissionStore } from '@/state/missionStore';
 import { MissionHeader } from '@/features/mission-ui/components/MissionHeader';
 import { ResourceHud } from '@/features/mission-ui/components/ResourceHud';
-import { ModuleInspector } from '@/features/mission-ui/components/ModuleInspector';
+import { SidePanel } from '@/features/mission-ui/components/SidePanel';
+import { FeedbackToast } from '@/features/mission-ui/components/FeedbackToast';
 import { EventTimeline } from '@/features/mission-ui/components/EventTimeline';
 
 // Dynamically import Three.js Scene to ensure SSR safety with WebGL
@@ -25,7 +26,7 @@ const HabitatScene = dynamic(
 );
 
 export default function MissionControlPage() {
-  const { missionState, selectedModuleId, selectModule } = useMissionStore();
+  const { missionState, selectedModuleId, selectModule, viewMode, setViewMode, applyAction, selectedComponentId, selectComponent } = useMissionStore();
 
   return (
     <main className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -43,11 +44,17 @@ export default function MissionControlPage() {
             missionState={missionState}
             selectedModuleId={selectedModuleId}
             onSelectModule={selectModule}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onTrainingAction={applyAction}
+            selectedComponentId={selectedComponentId}
+            onSelectComponent={selectComponent}
           />
+          <FeedbackToast />
         </section>
 
         {/* Selected Habitat Subsystem Inspector Panel */}
-        <ModuleInspector />
+        <SidePanel />
       </div>
 
       {/* 4. Event Stream & Log */}

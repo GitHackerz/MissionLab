@@ -151,3 +151,17 @@ Every pull request impacting `src/simulation/**` must verify:
 - [x] Ignoring water pump fault triggers water failure before Hour 72.
 - [x] Repair consumes 1 spare and requires exactly 4 hours to complete.
 - [x] Deterministic replay: 2 runs with identical actions produce identical telemetry.
+
+---
+
+## Training Engine Additions (`src/simulation/training/**`)
+
+- `MissionState.training?: TrainingState` holds component state, evidence, hypotheses, procedure progress, spare inventory, crop growth hours and an action log. Optional, so legacy fixtures behave as before.
+- **Water recovery** now comes from `getWaterRecoveryLph(state)` when `training` exists: 0.42 L/h normal, 0 for a seized pump, 0.105 for a clogged filter, 0.42 for a sensor-only fault, 0 while the unit is in maintenance or its service hatch is open or a bay is empty.
+- **Actions added:** `INSPECT_COMPONENT`, `RUN_DIAGNOSTIC`, `RECORD_HYPOTHESIS`, `TRAINING_STEP` (16 procedure steps + abort), `APPLY_POWER_PLAN`, `SET_LEARNING_MODE`. Rejections return `ok: false`, an educational `feedback`, and a state with the rejection logged.
+- **Time:** each action has a minute cost (`MINUTES`); whole hours advance through `advanceMission`, deterministically and independent of frame rate.
+- **Food model:** consumption 0.25 rations/h; lit greenhouse +1/6 ration/h.
+- **Mission end:** at Hour 72 success requires reserves at or above safety thresholds.
+- **Forecast:** `forecastPlan(state, loads)` simulates the real engine on a copy; it assumes no unforeseen faults.
+- **Assessment:** `assessLearning`, `getGuidance` (pure functions of state).
+- Tests: `src/simulation/__tests__/training.test.ts` (faults, evidence, validation, wrong/correct replacement, retry, verification, forecast, replay, assessment).

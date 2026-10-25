@@ -6,3 +6,4 @@ export * from './history';
 export * from './debrief';
 export * from './engine';
 export * from './fixtures';
+export * from './training';

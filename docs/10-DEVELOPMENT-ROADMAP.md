@@ -109,3 +109,11 @@ Milestone 5: Polish, Rehearsal & Pitch Defense
 | **M5-03** | Verify production build and deploy to Vercel | Amina | P0 | All | Publicly accessible URL | Planned |
 | **M5-04** | Prepare offline local fallback bundle | Habib | P0 | M5-03 | Zero-network local demo backup | Planned |
 | **M5-05** | Complete 5-minute timed presentation rehearsal | All | P0 | M12-01 | Rehearsed live jury pitch | Planned |
+
+---
+
+## Training Milestones
+
+- **T0 (done):** component model, three faults, evidence, hypotheses, 16-step validated procedure, engine verification, forecast, assessment, tests.
+- **T1 (done):** 3D recycler service view, tools, spares, hotspots, camera transition; Training / Power / Debrief tabs; rewind to decisions with comparison.
+- **T2 (next):** guided onboarding sequence, per-step coach overlays, sound-free alternatives for all cues, additional faults, more modules with procedures, greenhouse experiments, radiation shelter scenario, touch and keyboard polish for the 3D service view, profiling on low-end GPUs.

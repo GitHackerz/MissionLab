@@ -140,3 +140,9 @@ To maintain high hackathon velocity and avoid unnecessary infrastructure failure
 - **No Database / PostgreSQL:** Snapshots and branch history are held in browser memory.
 - **No External Cloud AI APIs:** Outcomes and autopsy explanations are deterministically generated from structured telemetry evidence.
 - **No Heavy Physics Engine:** No Ammo.js or Rapier; rigid-body gravity is irrelevant to colony systems management.
+
+---
+
+## Training Layer
+
+Training logic extends the engine; it adds no second state store. The 3D scene emits typed `TrainingAction` requests (`onTrainingAction`), `applyMissionAction` validates and returns the next state plus educational feedback, and the Zustand store publishes it to both the 3D scene and the UI. See [16-TRAINING-DESIGN.md](16-TRAINING-DESIGN.md) §2.

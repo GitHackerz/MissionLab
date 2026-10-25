@@ -4,6 +4,7 @@ import React from 'react';
 import { useMissionStore } from '@/state/missionStore';
 import { Zap, Droplets, Wind, Users, Award, AlertCircle } from 'lucide-react';
 import { RED_STORM_CONFIG } from '@/simulation/config';
+import { getWaterRecoveryLph } from '@/simulation/training/recycler';
 
 export const ResourceHud: React.FC = () => {
   const { missionState } = useMissionStore();
@@ -57,7 +58,7 @@ export const ResourceHud: React.FC = () => {
           </span>
         </div>
         <div className="text-[10px] text-stone-400 flex justify-between font-mono">
-          <span>Net: {missionState.modules['water-recycler'].status === 'operational' ? '-0.08 L/h' : '-0.50 L/h'}</span>
+          <span>Net: {(getWaterRecoveryLph(missionState) - RED_STORM_CONFIG.crewWaterUseLitersPerHour).toFixed(2)} L/h</span>
           <span>Spares: {resources.sparePumps}</span>
         </div>
       </div>
@@ -91,7 +92,7 @@ export const ResourceHud: React.FC = () => {
           </span>
         </div>
         <div className="text-[10px] text-stone-400 flex justify-between font-mono">
-          <span>Rations: {resources.foodRations}</span>
+          <span>Rations: {Math.floor(resources.foodRations)}</span>
           <span>Heating: 1.2 kW</span>
         </div>
       </div>

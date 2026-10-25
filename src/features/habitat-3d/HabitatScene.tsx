@@ -1,20 +1,83 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { AdaptiveDpr, PerformanceMonitor } from '@react-three/drei';
+import * as THREE from 'three';
 import { HabitatSceneProps, ModuleId } from '@/simulation/types';
-import { ModuleMesh } from './components/ModuleMesh';
-import { MarsEnvironment } from './components/MarsEnvironment';
+import { ColonyLayout } from './components/ColonyLayout';
+import { MarsEnvironment, SceneQuality } from './components/MarsEnvironment';
+import { CameraController, CameraRequest } from './components/CameraController';
+import { HabitatMaterialsProvider } from './components/HabitatMaterials';
+import { SceneErrorBoundary, SceneFallback } from './components/SceneFallback';
+import { ViewportOverlay } from './components/ViewportOverlay';
+import { useReducedMotion } from './hooks/useReducedMotion';
+import { useStormIntensity } from './hooks/useStormIntensity';
+import { CAMERA } from './constants/layout';
+import { isModuleId, stormTarget } from './utils/visualState';
+import { isWebGLAvailable } from './utils/webgl';
 
-const MODULE_POSITIONS: Record<ModuleId, [number, number, number]> = {
-  'crew-habitat': [0, 0, 0],
-  'life-support': [-3.2, 0, 1.2],
-  'water-recycler': [-2.8, 0, -2.4],
-  'greenhouse': [3.5, 0, 1.8],
-  'research-lab': [3.2, 0, -2.0],
-  'battery-bank': [0, 0, 3.8],
-  'solar-array': [0, 0, -5.0],
+// Stable references. R3F re-applies `camera` *options* on every Canvas render, snapping a moved camera
+// back to its initial pose, so the camera is passed as an instance, which it never touches.
+function createSceneCamera(): THREE.PerspectiveCamera {
+  const camera = new THREE.PerspectiveCamera(CAMERA.fov, 1, 0.1, 400);
+  camera.position.set(...CAMERA.overviewOffset);
+  return camera;
+}
+const DPR_HIGH: [number, number] = [1, 1.75];
+const DPR_LOW: [number, number] = [1, 1.25];
+const GL_PROPS = { antialias: true, alpha: false, powerPreference: 'high-performance' as const };
+const PERFORMANCE_PROPS = { min: 0.6 };
+
+interface SceneContentsProps extends HabitatSceneProps {
+  serviceActive: boolean;
+  quality: SceneQuality;
+  reducedMotion: boolean;
+  cameraRequest: CameraRequest | null;
+  onFocusModule: (id: ModuleId) => void;
+}
+
+/** Everything inside the Canvas. Reads canonical state; owns only transient render values. */
+const SceneContents: React.FC<SceneContentsProps> = ({
+  missionState,
+  selectedModuleId,
+  onSelectModule,
+  quality,
+  reducedMotion,
+  cameraRequest,
+  onFocusModule,
+  serviceActive,
+  selectedComponentId,
+  onTrainingAction,
+  onSelectComponent,
+}) => {
+  const stormRef = useStormIntensity(stormTarget(missionState), reducedMotion);
+
+  const handleSelect = useCallback(
+    (id: ModuleId) => {
+      if (isModuleId(id)) onSelectModule(id);
+    },
+    [onSelectModule],
+  );
+
+  return (
+    <HabitatMaterialsProvider stormRef={stormRef}>
+      <MarsEnvironment stormRef={stormRef} quality={quality} reducedMotion={reducedMotion} />
+      <ColonyLayout
+        missionState={missionState}
+        selectedModuleId={selectedModuleId}
+        reducedMotion={reducedMotion}
+        stormRef={stormRef}
+        onSelectModule={handleSelect}
+        onFocusModule={onFocusModule}
+        serviceActive={serviceActive}
+        selectedComponentId={selectedComponentId ?? null}
+        onTrainingAction={onTrainingAction}
+        onSelectComponent={onSelectComponent}
+      />
+      <CameraController selectedModuleId={selectedModuleId} serviceActive={serviceActive} request={cameraRequest} reducedMotion={reducedMotion} />
+    </HabitatMaterialsProvider>
+  );
 };
 
 export const HabitatScene: React.FC<HabitatSceneProps> = ({
@@ -22,52 +85,119 @@ export const HabitatScene: React.FC<HabitatSceneProps> = ({
   selectedModuleId,
   onSelectModule,
   className = 'w-full h-full min-h-[480px]',
+  viewMode = 'colony',
+  onViewModeChange,
+  onTrainingAction,
+  selectedComponentId,
+  onSelectComponent,
 }) => {
+  const [webgl, setWebgl] = useState<boolean | null>(null);
+  const [contextLost, setContextLost] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [quality, setQuality] = useState<SceneQuality>('high');
+  const [cameraRequest, setCameraRequest] = useState<CameraRequest | null>(null);
+  const reducedMotion = useReducedMotion();
+  const [sceneCamera] = useState(createSceneCamera);
+
+  useEffect(() => {
+    setWebgl(isWebGLAvailable());
+  }, []);
+
+  const requestFocus = useCallback((moduleId: ModuleId) => {
+    setCameraRequest((prev) => ({ kind: 'focus', moduleId, nonce: (prev?.nonce ?? 0) + 1 }));
+  }, []);
+  const requestOverview = useCallback(() => {
+    setCameraRequest((prev) => ({ kind: 'overview', nonce: (prev?.nonce ?? 0) + 1 }));
+  }, []);
+
+  const serviceActive = viewMode === 'service' && Boolean(missionState.training);
+  const previousView = useRef(viewMode);
+  useEffect(() => {
+    if (previousView.current !== viewMode) {
+      setCameraRequest((prev) => ({ kind: viewMode === 'service' ? 'service' : 'overview', nonce: (prev?.nonce ?? 0) + 1 }) as CameraRequest);
+    } else if (viewMode === 'service') {
+      setCameraRequest((prev) => prev ?? ({ kind: 'service', nonce: 1 } as CameraRequest));
+    }
+    previousView.current = viewMode;
+  }, [viewMode]);
+
+  const fallback = (reason: string) => (
+    <SceneFallback
+      reason={reason}
+      missionState={missionState}
+      selectedModuleId={selectedModuleId}
+      onSelectModule={onSelectModule}
+    />
+  );
+
   return (
-    <div className={`relative bg-[#190b07] overflow-hidden ${className}`}>
-      {/* 3D Canvas Viewport */}
-      <Canvas
-        shadows
-        camera={{ position: [10, 11, 14], fov: 45 }}
-        gl={{ antialias: true, alpha: false }}
-        onPointerMissed={() => onSelectModule(selectedModuleId as ModuleId)}
-      >
-        <Suspense fallback={null}>
-          <MarsEnvironment stormActive={missionState.stormActive} />
+    <div className={`relative overflow-hidden bg-[#190b07] ${className}`}>
+      {webgl === false && fallback('WebGL is not available in this browser.')}
 
-          {/* Habitat Subsystem Modules */}
-          {Object.values(missionState.modules).map((mod) => (
-            <ModuleMesh
-              key={mod.id}
-              module={mod}
-              position={MODULE_POSITIONS[mod.id] || [0, 0, 0]}
-              isSelected={selectedModuleId === mod.id}
-              onSelect={onSelectModule}
+      {webgl && (
+        <SceneErrorBoundary fallback={(error) => fallback(`The 3D scene failed to start (${error.message}).`)}>
+          <Canvas
+            shadows="percentage"
+            dpr={quality === 'high' ? DPR_HIGH : DPR_LOW}
+            camera={sceneCamera}
+            gl={GL_PROPS}
+            performance={PERFORMANCE_PROPS}
+            onCreated={({ gl, scene, camera }) => {
+              gl.toneMapping = THREE.ACESFilmicToneMapping;
+              gl.toneMappingExposure = 1.05;
+              const canvas = gl.domElement;
+              canvas.addEventListener('webglcontextlost', (e) => {
+                e.preventDefault();
+                setContextLost(true);
+              });
+              canvas.addEventListener('webglcontextrestored', () => setContextLost(false));
+              if (process.env.NODE_ENV !== 'production') {
+                (window as unknown as Record<string, unknown>).__habitatDebug = { gl, scene, camera };
+              }
+              requestAnimationFrame(() => setReady(true));
+            }}
+          >
+            <PerformanceMonitor onDecline={() => setQuality('low')} flipflops={3} />
+            <AdaptiveDpr />
+            <SceneContents
+              missionState={missionState}
+              selectedModuleId={selectedModuleId}
+              onSelectModule={onSelectModule}
+              quality={quality}
+              reducedMotion={reducedMotion}
+              cameraRequest={cameraRequest}
+              onFocusModule={requestFocus}
+              serviceActive={serviceActive}
+              selectedComponentId={selectedComponentId}
+              onTrainingAction={onTrainingAction}
+              onSelectComponent={onSelectComponent}
             />
-          ))}
+          </Canvas>
+        </SceneErrorBoundary>
+      )}
 
-          {/* Smooth Orbit & Inspection Camera Controls */}
-          <OrbitControls
-            enableDamping
-            dampingFactor={0.08}
-            minDistance={5}
-            maxDistance={35}
-            maxPolarAngle={Math.PI / 2.05} // Prevent camera clipping beneath terrain
-            target={[0, 0.5, 0]}
-          />
-        </Suspense>
-      </Canvas>
+      {contextLost && fallback('The graphics context was lost; waiting for the browser to restore it.')}
 
-      {/* Viewport Overlay Controls & Compass */}
-      <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md border border-mars-border px-3 py-1.5 rounded text-xs text-stone-300 flex items-center space-x-2 pointer-events-none select-none">
-        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-        <span>3D MARS HABITAT (ORBIT: LEFT CLICK | ZOOM: SCROLL | PAN: RIGHT CLICK)</span>
-      </div>
+      {webgl && (
+        <ViewportOverlay
+          stormActive={missionState.stormActive}
+          selectedModuleId={selectedModuleId}
+          serviceActive={serviceActive}
+          onExitService={() => onViewModeChange?.('colony')}
+          onOverview={() => {
+            if (serviceActive) onViewModeChange?.('colony');
+            else requestOverview();
+          }}
+          onFocusSelected={() => selectedModuleId && requestFocus(selectedModuleId)}
+        />
+      )}
 
-      {missionState.stormActive && (
-        <div className="absolute top-3 right-3 bg-red-950/80 border border-red-500/50 px-3 py-1.5 rounded text-xs text-red-200 flex items-center space-x-2">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-          <span className="font-semibold uppercase tracking-wider">Dust Storm Active (Solar: 4.0 kW)</span>
+      {(webgl === null || (webgl && !ready)) && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#190b07] font-mono text-sm text-stone-400">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+            <span>INITIALIZING 3D DIGITAL TWIN...</span>
+          </div>
         </div>
       )}
     </div>

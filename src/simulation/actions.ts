@@ -1,4 +1,10 @@
 import { AvailableAction, MissionAction, MissionState } from './types';
+import { validateTrainingAction } from './training/apply';
+
+const TRAINING_ACTION_TYPES = ['INSPECT_COMPONENT', 'RUN_DIAGNOSTIC', 'RECORD_HYPOTHESIS', 'TRAINING_STEP', 'APPLY_POWER_PLAN', 'SET_LEARNING_MODE'];
+export function isTrainingAction(action: MissionAction): boolean {
+  return TRAINING_ACTION_TYPES.includes(action.type);
+}
 
 /**
  * Determine which player actions are currently valid in the given simulation state.
@@ -52,18 +58,23 @@ export function getAvailableActions(state: MissionState): AvailableAction[] {
   const hasSpare = state.resources.sparePumps > 0;
   const isDamaged = recycler.status === 'degraded' || recycler.status === 'offline';
   const isAlreadyRepairing = recycler.status === 'repairing';
+  const guided = Boolean(state.training);
 
   actions.push({
     id: 'repair-water-recycler',
     type: 'REPAIR_WATER_RECYCLER',
-    label: isAlreadyRepairing ? 'Repair in Progress' : 'Repair Water Recycler',
-    description: isAlreadyRepairing
+    label: isAlreadyRepairing ? 'Repair in Progress' : guided ? 'Open Water Recycler Training' : 'Repair Water Recycler',
+    description: guided
+      ? 'Diagnose the fault and perform the maintenance procedure in the Training tab. There is no one-click repair.'
+      : isAlreadyRepairing
       ? `Technician actively replacing pump (${recycler.repairHoursRemaining ?? 0}h remaining).`
       : hasSpare
       ? 'Consumes 1 spare pump assembly. Requires 4 simulated hours of technician work.'
       : 'Cannot repair: No spare pump assemblies remaining in habitat inventory.',
-    enabled: isDamaged && hasSpare && !isAlreadyRepairing,
-    disabledReason: !isDamaged
+    enabled: !guided && isDamaged && hasSpare && !isAlreadyRepairing,
+    disabledReason: guided
+      ? 'Use the Training tab: diagnose, then service the unit.'
+      : !isDamaged
       ? 'Recycler is already operating nominally.'
       : !hasSpare
       ? 'No spare pump assemblies available.'
@@ -131,6 +142,9 @@ export function validateAction(
 
     case 'REPAIR_WATER_RECYCLER': {
       const recycler = state.modules['water-recycler'];
+      if (state.training) {
+        return { valid: false, reason: 'Repairs are performed through the maintenance procedure in the Training tab.' };
+      }
       if (recycler.status === 'repairing') {
         return { valid: false, reason: 'Repair is already underway.' };
       }
@@ -158,6 +172,18 @@ export function validateAction(
     }
 
     case 'RESET_MISSION':
+      return { valid: true };
+
+    case 'INSPECT_COMPONENT':
+    case 'RUN_DIAGNOSTIC':
+    case 'RECORD_HYPOTHESIS':
+    case 'TRAINING_STEP':
+    case 'SET_LEARNING_MODE': {
+      const v = validateTrainingAction(state, action);
+      return v.valid ? { valid: true } : { valid: false, reason: v.feedback.body };
+    }
+
+    case 'APPLY_POWER_PLAN':
       return { valid: true };
 
     default:

@@ -5,8 +5,15 @@ import {
   MissionState,
 } from './types';
 import { RED_STORM_CONFIG, INITIAL_MODULES } from './config';
-import { getAvailableActions, validateAction } from './actions';
+import { getAvailableActions, isTrainingAction, validateAction } from './actions';
+import { applyTrainingAction, createInitialTraining, syncRecyclerModule } from './training/apply';
+import { getWaterRecoveryLph } from './training/recycler';
+import { applyPlanToState, forecastPowerPlan, type PowerForecast } from './training/power';
+import type { PlanLoadId } from './training/types';
 import { RED_STORM_SCHEDULED_EVENTS } from './events';
+
+const FOOD_USE_PER_HOUR = 0.25;
+const FOOD_GROWN_PER_LIT_HOUR = 1 / 6;
 
 /**
  * Creates a brand new initial MissionState from a scenario configuration.
@@ -43,10 +50,16 @@ export function createInitialMission(
       },
     ],
     scienceScore: 0,
+    training: createInitialTraining(),
   };
 }
 
 export { getAvailableActions };
+
+/** Forecast a proposed power plan by running THIS engine on a copy of the state. */
+export function forecastPlan(state: MissionState, loads: Partial<Record<PlanLoadId, boolean>>): PowerForecast {
+  return forecastPowerPlan(state, loads, advanceMission);
+}
 
 /**
  * Applies a player or session action to the mission state.
@@ -55,6 +68,28 @@ export function applyMissionAction(
   state: MissionState,
   action: MissionAction
 ): ActionResult {
+  if (isTrainingAction(action)) {
+    if (action.type === 'APPLY_POWER_PLAN') {
+      if (state.status === 'success' || state.status === 'failed') {
+        return { ok: false, reason: 'Mission has concluded. Use Rewind or Reset to continue.', state };
+      }
+      const next = applyPlanToState(state, action.loads);
+      if (next.training) {
+        next.training.log.push({ hour: next.hour, minute: next.training.minuteOfHour, action: 'APPLY_POWER_PLAN', ok: true, detail: JSON.stringify(action.loads) });
+      }
+      return {
+        ok: true,
+        state: next,
+        message: 'Power plan applied.',
+        feedback: { kind: 'success', title: 'Power plan applied', body: 'Loads were switched. Watch the battery trend to confirm the plan works.' },
+      };
+    }
+    const outcome = applyTrainingAction(state, action as Parameters<typeof applyTrainingAction>[1], advanceMission);
+    return outcome.ok
+      ? { ok: true, state: outcome.state, message: outcome.feedback.title, feedback: outcome.feedback }
+      : { ok: false, reason: outcome.feedback.body, state: outcome.state, feedback: outcome.feedback };
+  }
+
   const validation = validateAction(state, action);
   if (!validation.valid) {
     return { ok: false, reason: validation.reason || 'Invalid action', state };
@@ -121,6 +156,9 @@ export function applyMissionAction(
     case 'REWIND_TO': {
       return { ok: true, state: next };
     }
+
+    default:
+      return { ok: false, reason: 'Unrecognized action type.', state };
   }
 }
 
@@ -192,10 +230,12 @@ export function advanceMission(state: MissionState, hours: number): MissionState
     );
 
     // 4. Water balance calculation
-    let waterRecovery = 0;
-    if (recycler.status === 'operational' && recycler.enabled) {
-      waterRecovery = RED_STORM_CONFIG.normalWaterRecoveryLitersPerHour;
-    }
+    // With the training model the recovery rate comes from the component state; legacy fixtures keep the old rule.
+    const waterRecovery = next.training
+      ? getWaterRecoveryLph(next)
+      : recycler.status === 'operational' && recycler.enabled
+      ? RED_STORM_CONFIG.normalWaterRecoveryLitersPerHour
+      : 0;
     const netWaterLoss = RED_STORM_CONFIG.crewWaterUseLitersPerHour - waterRecovery;
     next.resources.waterLiters = Math.max(0, next.resources.waterLiters - netWaterLoss);
 
@@ -207,6 +247,15 @@ export function advanceMission(state: MissionState, hours: number): MissionState
     }
     const netOxygenGain = oxygenGen - RED_STORM_CONFIG.crewOxygenUseKgPerHour;
     next.resources.oxygenKg = Math.max(0, next.resources.oxygenKg + netOxygenGain);
+
+    // 5b. Food model (educational): crew eat 0.25 rations/h; lit greenhouse crops add 1/6 ration/h.
+    next.resources.foodRations = Math.max(0, next.resources.foodRations - FOOD_USE_PER_HOUR);
+    const gh = next.modules['greenhouse'];
+    if (gh.enabled && gh.status !== 'offline' && next.resources.batteryKwh > 0) {
+      next.resources.foodRations += FOOD_GROWN_PER_LIT_HOUR;
+      if (next.training) next.training.cropGrowthHours += 1;
+    }
+    next.resources.foodRations = Number(next.resources.foodRations.toFixed(3));
 
     // 6. Science Score progression if research lab is powered
     if (next.modules['research-lab'].enabled && next.resources.batteryKwh > 0) {
@@ -254,8 +303,25 @@ export function advanceMission(state: MissionState, hours: number): MissionState
       }
     }
 
+    syncRecyclerModule(next);
+
     // 8. Check success condition at 72 hours
     if (next.hour >= RED_STORM_CONFIG.durationHours) {
+      // Resource-integrity directive (docs/03 §1.2): surviving is not enough if reserves end below safety thresholds.
+      const unsafe =
+        next.resources.waterLiters < RED_STORM_CONFIG.waterSafetyThresholdLiters
+          ? `Water reserve ended at ${next.resources.waterLiters.toFixed(1)} L, below the ${RED_STORM_CONFIG.waterSafetyThresholdLiters} L safety threshold. Crew hydration was no longer safe.`
+          : next.resources.oxygenKg < RED_STORM_CONFIG.oxygenSafetyThresholdKg
+          ? `Oxygen reserve ended below the ${RED_STORM_CONFIG.oxygenSafetyThresholdKg} kg safety threshold.`
+          : next.resources.batteryKwh < RED_STORM_CONFIG.batterySafetyThresholdKwh
+          ? `Battery ended below the ${RED_STORM_CONFIG.batterySafetyThresholdKwh} kWh safety reserve.`
+          : null;
+      if (unsafe) {
+        next.status = 'failed';
+        next.failureReason = unsafe;
+        next.events.push({ id: `evt-fail-reserve-${next.hour}`, hour: next.hour, type: 'RESERVE_BELOW_SAFETY', severity: 'critical', message: unsafe });
+        break;
+      }
       next.status = 'success';
       next.events.push({
         id: `evt-success-${next.hour}`,

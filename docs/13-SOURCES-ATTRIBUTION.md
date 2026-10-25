@@ -65,6 +65,7 @@ Every third-party software library used in MissionLab is open-source and properl
 
 - **Procedural 3D Geometry:** Phase 0 habitat meshes (Central Dome, Solar Mast, Battery Containers, Distillation Towers, Hydroponic Tunnels) are created procedurally using native Three.js primitives (`CylinderGeometry`, `BoxGeometry`, `SphereGeometry`, `RingGeometry`) authored directly by the team.
 - **Palette & Atmosphere:** Color hex values are mathematically derived from Chryse Planitia Viking Lander and Curiosity rover calibrated terrain spectra.
+- **Full colony build:** every module, the terrain, rocks, ridgeline, sky dome, dust particles, pipes and tunnels are generated procedurally in code (Three.js primitives, value noise, canvas-generated solar-cell and regolith-grain textures, a local `Lightformer` environment). No external 3D model, texture, HDRI or font is loaded, so there are no additional licences or network fetches at runtime.
 - **Third-Party 3D Models:** Any external GLB models imported in subsequent milestones will be logged here with explicit CC-BY or public domain licenses and creator links before presentation.
 
 ---

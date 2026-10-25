@@ -96,3 +96,13 @@ These scenarios illustrate how the MissionLab architecture extends to a curricul
 ### Mission 05: Earth Communications Blackout (Grade Level 9–12)
 - **Crisis:** Mars solar conjunction blocks radio communications between Earth and Mars for 14 days. Autonomous operational decision-making with zero ground telemetry support.
 - **Concepts:** Autonomous systems, delayed feedback loops, contingency reserves.
+
+---
+
+## Training Update: Mission 01 as implemented
+
+- Storm arrives at **Hour 1** (the first simulated step already runs at 4.0 kW). The Hour 0 trigger in the original schedule could never fire.
+- Hour 30: the engine reports only the **symptom** ("recovery below expected range"). The configured root cause (default pump cartridge; filter obstruction and sensor drift are also supported) must be diagnosed from evidence.
+- A repair is the validated maintenance procedure (about 2 simulated hours, one spare part), not a 4-hour button. Wrong replacements consume spares and fail verification.
+- **Success now also requires** water, oxygen and battery to end at or above their safety thresholds (as the Resource Integrity Directive already stated). An ignored recycler fault therefore ends in failure (water below 14 L).
+- See [16-TRAINING-DESIGN.md](16-TRAINING-DESIGN.md) for the full journey.

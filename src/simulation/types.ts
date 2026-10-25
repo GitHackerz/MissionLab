@@ -7,6 +7,9 @@
  * - Mission Control UI & Debrief (Amina)
  */
 
+import type { RecyclerComponentId, TrainingAction, TrainingFeedback, TrainingState } from './training/types';
+export type { RecyclerComponentId, TrainingAction, TrainingFeedback, TrainingState };
+
 export type ModuleId =
   | 'solar-array'
   | 'battery-bank'
@@ -87,6 +90,8 @@ export interface MissionState {
   events: MissionEvent[];
   scienceScore: number;
   failureReason?: string;
+  /** Component-level training model (docs/16). Absent in legacy fixtures. */
+  training?: TrainingState;
 }
 
 // Discriminated union of in-world player decisions
@@ -100,11 +105,11 @@ export type SessionAction =
   | { type: 'REWIND_TO'; hour: number; branchFrom: string }
   | { type: 'RESET_MISSION' };
 
-export type MissionAction = InWorldAction | SessionAction;
+export type MissionAction = InWorldAction | SessionAction | TrainingAction;
 
 export type ActionResult =
-  | { ok: true; state: MissionState; message?: string }
-  | { ok: false; reason: string; state: MissionState };
+  | { ok: true; state: MissionState; message?: string; feedback?: TrainingFeedback }
+  | { ok: false; reason: string; state: MissionState; feedback?: TrainingFeedback };
 
 export interface AvailableAction {
   id: string;
@@ -191,4 +196,12 @@ export interface HabitatSceneProps {
   selectedModuleId: ModuleId | null;
   onSelectModule: (moduleId: ModuleId) => void;
   className?: string;
+  /** 'service' zooms into the water recycler's detailed, interactive service view. Default 'colony'. */
+  viewMode?: 'colony' | 'service';
+  onViewModeChange?: (mode: 'colony' | 'service') => void;
+  /** Receives typed interaction REQUESTS from the 3D equipment. The engine decides what happens. */
+  onTrainingAction?: (action: TrainingAction) => void;
+  /** Component the learner is inspecting (highlighted in service view). */
+  selectedComponentId?: RecyclerComponentId | null;
+  onSelectComponent?: (id: RecyclerComponentId) => void;
 }

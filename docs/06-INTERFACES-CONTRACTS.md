@@ -215,3 +215,17 @@ export interface HabitatSceneProps {
   className?: string;
 }
 ```
+
+---
+
+## 7. Training Contracts (additive)
+
+Defined in `src/simulation/training/types.ts` and re-exported from `types.ts`:
+`TrainingState`, `TrainingAction`, `TrainingStepAction`, `RecyclerComponentId`, `ReplaceableId`, `RecyclerFaultKind`, `Measurement`, `EvidenceRecord`, `Hypothesis`, `ProcedureState`, `VerificationResult`, `TrainingFeedback`.
+
+- `MissionState.training?: TrainingState`
+- `MissionAction = InWorldAction | SessionAction | TrainingAction`
+- `ActionResult` carries optional `feedback`
+- `HabitatSceneProps` gains optional `viewMode`, `onViewModeChange`, `onTrainingAction`, `selectedComponentId`, `onSelectComponent`. Existing callers keep working unchanged.
+
+These changes are backwards compatible; per the governing rule they still need sign-off from all three owners.

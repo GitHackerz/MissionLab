@@ -6,6 +6,8 @@ import {
   MissionSnapshot,
   MissionState,
   ModuleId,
+  RecyclerComponentId,
+  TrainingFeedback,
 } from '@/simulation/types';
 import {
   advanceMission,
@@ -24,8 +26,19 @@ export interface MissionStore {
   availableActions: AvailableAction[];
   history: MissionSnapshot[];
   activeFixtureKey: string;
+  /** Latest educational feedback from a training action (accepted or rejected). */
+  lastFeedback: TrainingFeedback | null;
+  /** 'service' = detailed equipment view of the water recycler in the 3D scene. */
+  viewMode: 'colony' | 'service';
+  /** Earlier timelines abandoned by a rewind, kept for comparison. */
+  abandonedTimelines: MissionSnapshot[][];
 
   // Actions
+  selectedComponentId: RecyclerComponentId | null;
+  selectComponent: (id: RecyclerComponentId | null) => void;
+  setViewMode: (mode: 'colony' | 'service') => void;
+  clearFeedback: () => void;
+  rewindToSnapshot: (snapshotId: string) => void;
   selectModule: (moduleId: ModuleId | null) => void;
   applyAction: (action: MissionAction) => ActionResult;
   advanceTime: (hours: number) => void;
@@ -43,6 +56,29 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
   availableActions: getAvailableActions(initialMission),
   history: [initialSnapshot],
   activeFixtureKey: 'initial',
+  lastFeedback: null,
+  viewMode: 'colony',
+  abandonedTimelines: [],
+
+  selectedComponentId: null,
+  selectComponent: (id) => set({ selectedComponentId: id }),
+  setViewMode: (mode) => set({ viewMode: mode, ...(mode === 'service' ? { selectedModuleId: 'water-recycler' as const } : {}) }),
+  clearFeedback: () => set({ lastFeedback: null }),
+
+  rewindToSnapshot: (snapshotId: string) => {
+    const { history, abandonedTimelines } = get();
+    const index = history.findIndex((s) => s.snapshotId === snapshotId);
+    if (index < 0) return;
+    const restored: MissionState = JSON.parse(JSON.stringify(history[index].state));
+    set({
+      missionState: restored,
+      availableActions: getAvailableActions(restored),
+      history: history.slice(0, index + 1),
+      abandonedTimelines: index < history.length - 1 ? [...abandonedTimelines, history] : abandonedTimelines,
+      lastFeedback: null,
+      viewMode: 'colony',
+    });
+  },
 
   selectModule: (moduleId: ModuleId | null) => {
     set({ selectedModuleId: moduleId });
@@ -60,6 +96,9 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
         availableActions: getAvailableActions(resetState),
         history: [snap],
         activeFixtureKey: 'initial',
+        lastFeedback: null,
+        viewMode: 'colony',
+        abandonedTimelines: [],
       });
       return { ok: true, state: resetState };
     }
@@ -86,6 +125,13 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
         missionState: result.state,
         availableActions: getAvailableActions(result.state),
         history: [...history, newSnap],
+        lastFeedback: result.feedback ?? null,
+      });
+    } else {
+      // Rejected training actions still return a state with the rejection logged as learning evidence.
+      set({
+        lastFeedback: result.feedback ?? { kind: 'rejected', title: 'Not possible', body: result.reason },
+        ...(result.state !== missionState ? { missionState: result.state } : {}),
       });
     }
 
@@ -104,6 +150,25 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
   },
 
   loadFixture: (fixtureKey: string) => {
+    // Accelerated demo path: the REAL engine, no canned values. Plan applied, then time advanced to the fault.
+    if (fixtureKey === 'demo-fault') {
+      const planned = applyMissionAction(createInitialMission(RED_STORM_CONFIG), {
+        type: 'APPLY_POWER_PLAN',
+        loads: { greenhouse: false, 'research-lab': false },
+      });
+      const demo = advanceMission(planned.state, 30);
+      const snap = createSnapshot(demo);
+      set({
+        missionState: demo,
+        availableActions: getAvailableActions(demo),
+        history: [snap],
+        activeFixtureKey: fixtureKey,
+        lastFeedback: null,
+        selectedModuleId: 'water-recycler',
+        abandonedTimelines: [],
+      });
+      return;
+    }
     const fixture = FIXTURES[fixtureKey];
     if (!fixture) {
       console.warn(`Fixture ${fixtureKey} not found`);
@@ -116,6 +181,8 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
       availableActions: getAvailableActions(stateCopy),
       history: [snap],
       activeFixtureKey: fixtureKey,
+      lastFeedback: null,
+      abandonedTimelines: [],
     });
   },
 

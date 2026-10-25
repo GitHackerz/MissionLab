@@ -108,3 +108,9 @@ journey
 | Teacher Portal & Class Roster | Out of Scope | **P1 (Core SaaS)** |
 | Multi-tenant Authentication & Billing | Out of Scope | **P1 (Commercial)** |
 | Real-time Multiplayer Habitat Roles | Out of Scope | **P2 (Long-term)** |
+
+---
+
+## Training Update (hands-on learning)
+
+The product direction is now **hands-on, systems-based astronaut education**. Learners must diagnose and repair equipment, not just press repair buttons. Requirements, learning workflow, modes and acceptance criteria live in [16-TRAINING-DESIGN.md](16-TRAINING-DESIGN.md). The one-click repair (`REPAIR_WATER_RECYCLER`) remains only for legacy fixtures; with the training model active it is rejected and points to the maintenance procedure.

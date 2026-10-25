@@ -73,3 +73,12 @@ pnpm lint
 # 4. Production build verification
 pnpm build
 ```
+
+---
+
+## Training Tests
+
+- `src/simulation/__tests__/training.test.ts`: fault evidence consistency, hypothesis support, procedure validation (order, tools, compatibility, orientation, spares, interruption, retry), correct/wrong replacement, verification, power forecast vs engine, greenhouse trade-off, replay from snapshot, guidance, rejection logging.
+- `src/features/habitat-3d/__tests__/serviceInteractions.test.ts`: hotspot → engine request mapping and cadet hints.
+- `src/features/mission-ui/__tests__/panels.test.tsx`: evidence collection, rejections, full repair through the UI buttons, planner apply, rewind with comparison.
+- WebGL interaction was verified manually in a browser with Playwright (real clicks through the 3D hotspots); there is no automated WebGL test in CI.

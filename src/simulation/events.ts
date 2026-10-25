@@ -1,4 +1,5 @@
 import { MissionEvent, MissionState } from './types';
+import { syncRecyclerModule } from './training/apply';
 
 export interface ScheduledEvent {
   hour: number;
@@ -12,11 +13,12 @@ export interface ScheduledEvent {
  */
 export const RED_STORM_SCHEDULED_EVENTS: ScheduledEvent[] = [
   {
-    hour: 0,
+    // Hour 1: the first simulated step already runs under storm conditions.
+    hour: 1,
     trigger: (s) => !s.stormActive,
     createEvent: () => ({
       id: 'evt-storm-arrival',
-      hour: 0,
+      hour: 1,
       type: 'DUST_STORM_ARRIVAL',
       severity: 'warning',
       moduleId: 'solar-array',
@@ -32,18 +34,33 @@ export const RED_STORM_SCHEDULED_EVENTS: ScheduledEvent[] = [
   },
   {
     hour: 30,
-    trigger: (s) => s.modules['water-recycler'].status === 'operational',
-    createEvent: () => ({
-      id: 'evt-pump-fault',
-      hour: 30,
-      type: 'PUMP_MECHANICAL_FAULT',
-      severity: 'critical',
-      moduleId: 'water-recycler',
-      message: 'Water recycler primary distillation pump impeller seized. Water recovery dropped to 0 L/h.',
-    }),
+    trigger: (s) =>
+      s.training ? s.training.recycler.faultOnsetHour === null : s.modules['water-recycler'].status === 'operational',
+    createEvent: (s) =>
+      s.training
+        ? {
+            // Symptom only: the root cause is for the learner to diagnose.
+            id: 'evt-recovery-low',
+            hour: 30,
+            type: 'WATER_RECOVERY_LOW',
+            severity: 'critical',
+            moduleId: 'water-recycler',
+            message: 'Water recovery rate has fallen below the expected operating range (0.42 L/h nominal). Inspect the water recycler.',
+          }
+        : {
+            id: 'evt-pump-fault',
+            hour: 30,
+            type: 'PUMP_MECHANICAL_FAULT',
+            severity: 'critical',
+            moduleId: 'water-recycler',
+            message: 'Water recycler primary distillation pump impeller seized. Water recovery dropped to 0 L/h.',
+          },
     applyEffect: (s) => {
       const recycler = s.modules['water-recycler'];
-      if (recycler && recycler.status === 'operational') {
+      if (s.training) {
+        s.training.recycler.faultOnsetHour = s.hour;
+        syncRecyclerModule(s);
+      } else if (recycler && recycler.status === 'operational') {
         recycler.status = 'degraded';
         recycler.health = 0.35;
       }

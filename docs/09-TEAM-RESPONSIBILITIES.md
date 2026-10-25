@@ -15,7 +15,7 @@
 | **Snapshots, Rewind & History** | **Kammoun** | Amina | `src/simulation/history.ts`, `debrief.ts` |
 | **Engine Invariant Tests** | **Kammoun** | Shared | `src/simulation/__tests__/**` |
 | **3D Mars Scene & Atmosphere** | **Habib** | Amina | `src/features/habitat-3d/components/**` |
-| **3D Module Meshes & Shaders** | **Habib** | Kammoun | `src/features/habitat-3d/components/ModuleMesh.tsx` |
+| **3D Module Meshes & Shaders** | **Habib** | Kammoun | `src/features/habitat-3d/modules/**`, `src/features/habitat-3d/components/**` |
 | **Camera Navigation & Selection** | **Habib** | Amina | `src/features/habitat-3d/HabitatScene.tsx` |
 | **3D Asset Optimization & Credits** | **Habib** | Shared | `public/models/**`, `docs/13-SOURCES-ATTRIBUTION.md` |
 | **Application Shell & Layout** | **Amina** | Habib | `src/app/**` |
@@ -100,3 +100,12 @@ pnpm lint
 pnpm typecheck
 pnpm build
 ```
+
+---
+
+## Training Update: ownership
+
+- **Kammoun:** `src/simulation/training/**` (component model, faults, evidence, procedure rules, time and spares, forecast, assessment, tests).
+- **Habib:** `modules/WaterRecycler.tsx`, `components/Hotspot.tsx`, `utils/serviceInteractions.ts`, camera service view, flow and maintenance animation.
+- **Amina:** `TrainingPanel`, `PowerPlanner`, `MissionDebrief`, `SidePanel`, `FeedbackToast`, store feedback and rewind.
+- Integration edits to others' files are listed in [16-TRAINING-DESIGN.md](16-TRAINING-DESIGN.md) §2 and need owner review.
