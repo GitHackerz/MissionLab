@@ -13,9 +13,9 @@ describe('valid local mission continuation', () => {
     store.applyAction({ type: 'APPLY_POWER_PLAN', loads: { greenhouse: false, 'research-lab': false } });
     store.advanceTime(6);
     const before = structuredClone(useMissionStore.getState().missionState);
-    const saved = localStorage.getItem('missionlab_active_session_v1')!;
+    const saved = localStorage.getItem('missionlab_sessions_v2')!;
     store.resetMission();
-    localStorage.setItem('missionlab_active_session_v1', saved);
+    localStorage.setItem('missionlab_sessions_v2', saved);
     expect(store.restoreSession()).toBe(true);
     expect(useMissionStore.getState().missionState).toEqual(before);
     expect(getRoomPower(useMissionStore.getState().missionState, 'greenhouse').mode).toBe('emergency');
@@ -23,7 +23,8 @@ describe('valid local mission continuation', () => {
   });
   it('ignores corrupt or stale records without replacing the live mission', () => {
     const initial = useMissionStore.getState().missionState;
-    for (const raw of ['invalid json', '{"missionState":{},"history":[]}', '{"missionState":null,"history":[{}]}']) {
+    for (const raw of ['invalid json', '{"missionState":{},"history":[]}', '{"missionState":null,"history":[{}]}', '{"formatVersion":2,"activeMissionId":"mission-01-red-storm","sessions":{"mission-01-red-storm":{"missionVersion":1,"session":{"missionState":{},"history":[]}}}}']) {
+      localStorage.setItem('missionlab_sessions_v2', raw);
       localStorage.setItem('missionlab_active_session_v1', raw);
       expect(loadSessionFromStorage()).toBeNull();
       expect(useMissionStore.getState().restoreSession()).toBe(false);

@@ -25,7 +25,7 @@ export const SidePanel: React.FC = () => {
   const concluded = missionState.status === 'success' || missionState.status === 'failed';
 
   return (
-    <aside className="flex h-full w-full flex-col border-l border-mars-border bg-[#150a08] lg:w-[24rem]">
+    <aside className="relative z-10 flex h-auto w-full flex-col lg:h-full border-l border-mars-border bg-[#150a08] lg:w-[24rem]">
       <div role="tablist" aria-label="Mission workspace" className="flex border-b border-mars-border bg-black/30">
         {TABS.map((x) => (
           <button
@@ -42,7 +42,7 @@ export const SidePanel: React.FC = () => {
           </button>
         ))}
       </div>
-      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto">
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="min-h-0 lg:flex-1 lg:overflow-y-auto">
         {tab === 'systems' && <ModuleInspector />}
         {tab === 'training' && <TrainingPanel />}
         {tab === 'power' && <PowerPlanner />}

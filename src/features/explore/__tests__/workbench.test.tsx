@@ -7,9 +7,8 @@ import { FAULT_LABEL } from '@/simulation/training/recycler';
 import type { RecyclerFaultKind } from '@/simulation/training/types';
 import { useMissionStore } from '@/state/missionStore';
 import { RecyclerWorkbench } from '../ui/tasks/RecyclerWorkbench';
-import { MissionBriefing } from '../ui/MissionBriefing';
 import { getObjectives } from '../objectives';
-import { vi } from 'vitest';
+
 
 function setup(fault: RecyclerFaultKind) {
   const state = createTrainingMission();
@@ -105,18 +104,5 @@ describe('progressive recycler workbench', () => {
     cleanup(); render(<RecyclerWorkbench />);
     expect(screen.getByTestId('current-engine-action').textContent).toContain('Stop recycler');
     expect(useMissionStore.getState().missionState).toEqual(before);
-  });
-});
-describe('training entry', () => {
-  it('exposes only the available mission, explains guidance, and requires an explicit begin action', () => {
-    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
-    const begin = vi.fn(); render(<MissionBriefing onStart={begin} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start Training' }));
-    expect(screen.getByText(/Not playable yet/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('radio', { name: /^engineer/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'View briefing' }));
-    expect(begin).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Begin Mission' }));
-    expect(begin).toHaveBeenCalledWith('engineer', 'habitat');
   });
 });

@@ -22,7 +22,8 @@ const concept = (conceptId: string): NovaResponse['visualAction'] => ({ type: 's
 const point = (targetId: string): NovaResponse['visualAction'] => ({ type: 'point', targetId });
 
 /** Objective-level destination for the current stage. */
-export function destinationFor(stage: LearnerContext['stage']): string | null {
+export function destinationFor(stage: LearnerContext['stage'], ctx?: LearnerContext): string | null {
+  if (ctx?.atmosphere) return stage === 'concluded' ? 'station:mission-console' : ctx.missionId.includes('pressure') ? 'station:crew-terminal' : 'station:air-unit';
   switch (stage) {
     case 'power-plan': return 'station:power-console';
     case 'diagnose-start': case 'diagnose-conclude': case 'plan-repair': case 'repair': case 'verify': case 'retry': return 'station:water-recycler';
@@ -45,9 +46,23 @@ function powerLine(ctx: LearnerContext): string {
   return `Solar makes ${p.solarKw} kW and the habitat is using ${p.suppliedKw} kW, so the ${b.batteryKwh} kWh battery is ${net >= 0 ? 'charging' : 'draining'} by about ${Math.abs(net).toFixed(1)} kW.`;
 }
 
+/** Hints for the atmospheric missions. Only learner-visible telemetry and the learner's own evidence are used. */
+function atmosphereHint(req: NovaRequestBody, level: HintLevel): NovaResponse {
+  const ctx = req.context;
+  const base = { hintLevel: level, emotion: 'curious' as const };
+  const probe = ctx.nextProbe;
+  const station = probe?.targetId ?? (ctx.missionId.includes('pressure') ? 'station:crew-terminal' : 'station:air-unit');
+  if (ctx.stage === 'concluded') return reply('Open Mission Autopsy to trace what your measurements and decisions caused.', { ...base, emotion: 'encouraging', visualAction: point('station:mission-console') });
+  if (ctx.atmosphere?.verification === 'running') return reply('The monitored window is running. Use Wait and watch whether the trend stays safe for every minute.', { ...base, visualAction: concept('verify-with-measurement') });
+  if (level <= 1) return reply(ctx.concept, { ...base, followUpQuestion: 'Which measurement could tell a real change from a misleading instrument?' });
+  if (level === 2) return reply(probe ? `Try "${probe.test}". Compare it with the panel reading before you decide.` : 'Compare every instrument you have read. Which explanation fits all of them, not just one?', base);
+  return getTarget(station) ? reply(`I marked the ${getTarget(station)!.label}. Walk there and press E.`, { ...base, visualAction: point(station) }) : reply(ctx.objective, base);
+}
+
 function hintFor(req: NovaRequestBody, level: HintLevel): NovaResponse {
   const ctx = req.context;
-  const dest = destinationFor(ctx.stage);
+  if (ctx.atmosphere) return atmosphereHint(req, level);
+  const dest = destinationFor(ctx.stage, ctx);
   const probe = ctx.nextProbe;
   const base = { hintLevel: level, emotion: 'curious' as const };
   const dir = (id: string | null, text: string): NovaResponse =>
@@ -108,6 +123,9 @@ const KEYWORDS: [RegExp, (ctx: LearnerContext) => NovaResponse][] = [
   [/\b(sensor)\b/i, () => explainPart('flow-sensor', 'It is a measurement, so compare it with an independent reading.')],
   [/\b(clean tank|clean-tank|output tank)\b/i, () => explainPart('clean-tank')],
   [/\b(battery|batteries|power|electric\w*|energy|solar|drain\w*|watt|kw)\b/i, (ctx) => reply(`${powerLine(ctx)} A battery only stores what panels already made, so when demand beats generation it drains.`, { emotion: 'curious', visualAction: concept('battery-balance') })],
+  [/\b(pressure|leak|valve|co2|carbon|scrubber|fan|ventilat\w*|compartment|analy[sz]er)\b/i, (ctx) => ctx.atmosphere
+    ? reply(`${ctx.concept} ${ctx.atmosphere.metrics.slice(0, 2).filter((m) => m.value !== null).map((m) => `${m.label}: ${m.value} ${m.unit}.`).join(' ')}`.trim(), { emotion: 'curious', visualAction: concept('pressure-flow') })
+    : reply('Pressure is how hard gas pushes on its container, and it depends on how much gas there is.', { emotion: 'curious', visualAction: concept('pressure-flow') })],
   [/\b(oxygen|air|breath\w*)\b/i, (ctx) => reply(`Oxygen reserve is ${ctx.resources.oxygenKg} kg. Making it takes electricity, so protecting life-support power protects the crew's air.`, { emotion: 'curious', visualAction: concept('oxygen-energy') })],
   [/\b(greenhouse|dark|plant\w*|crop\w*|food|lamp\w*)\b/i, (ctx) => {
     const g = ctx.modules.find((m) => m.name.toLowerCase().includes('greenhouse'));
@@ -122,7 +140,7 @@ export function offlineReply(req: NovaRequestBody): NovaResponse {
   const level = req.hintLevel;
   if (req.intent === 'hint') return hintFor(req, Math.max(1, level) as HintLevel);
   if (req.intent === 'where') {
-    const dest = destinationFor(ctx.stage);
+    const dest = destinationFor(ctx.stage, ctx);
     const t = dest ? getTarget(dest) : null;
     return reply(t ? `${ctx.objective} I marked the ${t.label}. You walk there.` : ctx.objective, { emotion: 'curious', hintLevel: 0, visualAction: dest && t ? point(dest) : { type: 'none' } });
   }
@@ -137,7 +155,7 @@ export function offlineReply(req: NovaRequestBody): NovaResponse {
   const text = req.message ?? '';
   for (const [re, make] of KEYWORDS) if (re.test(text)) return make(ctx);
   if (/\b(hint|help|stuck|confus\w*)\b/i.test(text)) return hintFor(req, Math.max(1, level) as HintLevel);
-  const dest = destinationFor(ctx.stage);
+  const dest = destinationFor(ctx.stage, ctx);
   return reply(`${ctx.objective}`, { visualAction: dest ? point(dest) : { type: 'none' }, followUpQuestion: 'What are you trying to find out?' });
 }
 

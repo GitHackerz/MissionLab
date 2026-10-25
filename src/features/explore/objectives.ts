@@ -1,9 +1,17 @@
+import { getEmergencyObjective } from '@/simulation/missions/presentation';
+import { getMission } from '@/simulation/missions/registry';
 import type { MissionState } from '@/simulation/types';
 import { getGuidance } from '@/simulation/training/guidance';
 import type { RoomId } from './world/layout';
 
 export type ObjectiveStatus = 'available' | 'active' | 'completed' | 'failed' | 'retry';
 export function getObjectives(state: MissionState) {
+  if (state.emergency) {
+    const e=state.emergency, end=state.status!=='running';
+    return getMission(state.scenarioId).objectives.map((title,index)=>({id:`atmosphere-${index}`,title,destination:getMission(state.scenarioId).destination,
+      status: (index===0 ? e.evidence.length>0 : index===1 ? e.hypotheses.length>0 : index===2 ? e.repairs.length>0 || !e.exchangeEnabled || !e.valveActualOpen : e.verification?.passed)
+        ? 'completed' as ObjectiveStatus : end?'failed' as ObjectiveStatus:'active' as ObjectiveStatus }));
+  }
   const t = state.training;
   const power = t?.powerPlanAppliedHour != null;
   const fault = t?.recycler.faultOnsetHour != null;
@@ -20,6 +28,7 @@ export function getObjectives(state: MissionState) {
   ];
 }
 export function getPlayerObjective(state: MissionState, room: RoomId | null) {
+  if (state.emergency) return getEmergencyObjective(state);
   const stage = getGuidance(state).stage;
   if (state.status !== 'running') return { title: state.status === 'success' ? 'Mission accomplished' : 'Mission stopped', detail: 'Review the outcome and trace your decisions in Mission Autopsy. Rewind to test another approach.', destination: 'Mission Autopsy', wait: false };
   if (stage === 'power-plan') return { title: 'Investigate the energy shortage', detail: room === 'power' ? 'Approach the distribution board and press E. Compare generation, demand and the forecast before applying a plan.' : 'Solar supply has dropped. Visit the Power Room and investigate which systems the station can afford to run.', destination: 'Power Room · east →', wait: false };

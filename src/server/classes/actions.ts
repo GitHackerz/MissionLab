@@ -272,7 +272,7 @@ const runSchema = z.object({
   minWaterLiters: z.number().finite(),
   minOxygenKg: z.number().finite(),
   scienceScore: z.number().int().min(0).max(100000),
-  failureKind: z.enum(['power', 'water', 'oxygen']).nullable(),
+  failureKind: z.enum(['power', 'water', 'oxygen', 'pressure', 'co2', 'deadline']).nullable(),
   failureReason: z.string().max(500).nullable(),
   decisions: z.number().int().min(0).max(1000),
   skills: z.array(z.object({ id: z.string().max(40), label: z.string().max(60), rating: z.enum(['not-demonstrated', 'developing', 'proficient']) })).max(12).nullable(),

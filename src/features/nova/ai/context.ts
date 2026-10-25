@@ -8,13 +8,32 @@ import { getGuidance, type GuidanceStage } from '@/simulation/training/guidance'
 import { FAULT_LABEL } from '@/simulation/training/recycler';
 import type { DiagnosticTestId } from '@/simulation/training/types';
 import { INTERACTABLES, ROOMS, type RoomId } from '@/features/explore/world/layout';
+import { getMission } from '@/simulation/missions/registry';
+import { TEST_LABELS, COMPONENT_LABELS } from '@/simulation/missions/emergency';
+import { getEmergencyMetrics } from '@/simulation/missions/presentation';
 import { NOVA_TARGET_IDS, canTarget } from '../targets';
 import type { HintLevel, NovaIntent } from '../types';
 
 export interface ContextReading { label: string; value: number; unit: string; min: number; max: number; inRange: boolean }
 export interface ContextEvidence { title: string; hour: number; readings: ContextReading[] }
 
+export interface AtmosphereContext {
+  /** Values exactly as the learner's own telemetry strip shows them. */
+  metrics: { label: string; value: number | null; unit: string; limit: string }[];
+  tests: string[];
+  /** Readings the learner collected, latest first-class evidence for explanations. */
+  evidence: { test: string; minute: number; readings: { label: string; value: number; unit: string }[] }[];
+  inspected: string[];
+  procedureActive: boolean;
+  verification: 'none' | 'running' | 'passed' | 'failed';
+}
+
 export interface LearnerContext {
+  missionId: string;
+  missionTitle: string;
+  concept: string;
+  /** Present for the atmospheric missions only. */
+  atmosphere: AtmosphereContext | null;
   mission: { hour: number; durationHours: number; status: string; stormActive: boolean; crew: number };
   stage: GuidanceStage;
   objective: string;
@@ -68,7 +87,25 @@ export interface ViewState {
 }
 
 export function isOutcomeRevealed(m: MissionState): boolean {
+  if (m.emergency) return m.status === 'success' || m.status === 'failed' || m.emergency.verification?.passed === true;
   return m.status === 'success' || m.status === 'failed' || m.training?.recycler.procedure.verification?.passed === true;
+}
+
+const atmosphereStation = (m: MissionState) => (m.emergency?.kind === 'pressure' ? { id: 'station:crew-terminal', label: 'Atmospheric Control Console' } : { id: 'station:air-unit', label: 'Air Treatment Console' });
+
+/** Learner-visible atmospheric view: their own evidence and the telemetry strip, never the configured fault. */
+function atmosphereOf(m: MissionState): AtmosphereContext | null {
+  const e = m.emergency;
+  if (!e) return null;
+  const v = e.verification;
+  return {
+    metrics: getEmergencyMetrics(m).map(({ label, value, unit, limit }) => ({ label, value: value === null ? null : Number(value.toFixed(3)), unit, limit })),
+    tests: [...new Set(e.evidence.map((x) => TEST_LABELS[x.test]))],
+    evidence: e.evidence.slice(-3).map((x) => ({ test: TEST_LABELS[x.test], minute: x.minute, readings: x.readings.map((r) => ({ label: r.label, value: Number(r.value.toFixed(3)), unit: r.unit })) })),
+    inspected: e.inspected.map((c) => COMPONENT_LABELS[c]),
+    procedureActive: e.procedure !== null,
+    verification: !v ? 'none' : v.passed ? 'passed' : v.completedMinute === undefined ? 'running' : 'failed',
+  };
 }
 
 export function buildLearnerContext(m: MissionState, view: ViewState): LearnerContext {
@@ -77,13 +114,19 @@ export function buildLearnerContext(m: MissionState, view: ViewState): LearnerCo
   const revealed = isOutcomeRevealed(m);
   const focusId = view.activeInteractableId ?? view.nearbyId;
   const used = new Set((t?.evidence ?? []).map((e) => e.testId));
-  const probe = t && t.recycler.faultOnsetHour !== null && !revealed ? PROBES.find((p) => !used.has(p.test)) : undefined;
+  const probe = t && !m.emergency && t.recycler.faultOnsetHour !== null && !revealed ? PROBES.find((p) => !used.has(p.test)) : undefined;
+  const e = m.emergency;
+  const nextTest = e && !revealed ? getMission(m.scenarioId).diagnosticTests.find((x) => !e.evidence.some((r) => r.test === x)) : undefined;
   const faultEvent = m.events.some((e) => e.type === 'PUMP_MECHANICAL_FAULT');
   return {
+    missionId: m.scenarioId,
+    missionTitle: getMission(m.scenarioId).title,
+    concept: getMission(m.scenarioId).concept,
+    atmosphere: atmosphereOf(m),
     mission: { hour: round(m.hour), durationHours: m.durationHours, status: m.status, stormActive: m.stormActive, crew: m.crewCount },
     stage: g.stage,
     objective: g.objective,
-    learningMode: t?.mode ?? 'commander',
+    learningMode: e?.mode ?? t?.mode ?? 'commander',
     location: view.room ? ROOMS[view.room].label : null,
     focus: INTERACTABLES.find((i) => i.id === focusId)?.label ?? null,
     resources: {
@@ -104,17 +147,17 @@ export function buildLearnerContext(m: MissionState, view: ViewState): LearnerCo
       hour: e.hour,
       readings: e.readings.map((r) => ({ label: r.label, value: r.value, unit: r.unit, min: r.expectedMin, max: r.expectedMax, inRange: r.inRange })),
     })),
-    inspected: (t?.inspectedComponents ?? []).map((c) => COMPONENT_NAMES[c] ?? c),
-    diagnoses: (t?.hypotheses ?? []).slice(-2).map((h) => FAULT_LABEL[h.kind]),
+    inspected: e ? e.inspected.map((c) => COMPONENT_LABELS[c]) : (t?.inspectedComponents ?? []).map((c) => COMPONENT_NAMES[c] ?? c),
+    diagnoses: e ? e.hypotheses.slice(-2).map((h) => h.fault.replace(/-/g, ' ')) : (t?.hypotheses ?? []).slice(-2).map((h) => FAULT_LABEL[h.kind]),
     repair: {
       phase: t?.recycler.procedure.phase ?? 'available',
       stepsDone: t?.recycler.procedure.completedSteps.length ?? 0,
       verified: t?.recycler.procedure.verification ? t.recycler.procedure.verification.passed : null,
     },
     recentActions: (t?.log ?? []).slice(-5).map((l) => ({ action: l.action.split(':')[0], ok: l.ok })),
-    nextProbe: probe ? { targetId: probe.targetId, label: probe.label, test: probe.testLabel } : null,
+    nextProbe: probe ? { targetId: probe.targetId, label: probe.label, test: probe.testLabel } : nextTest ? { targetId: atmosphereStation(m).id, label: atmosphereStation(m).label, test: TEST_LABELS[nextTest] } : null,
     revealed,
-    debrief: revealed && t
+    debrief: revealed && e ? { fault: e.fault.replace(/-/g, ' '), outcome: m.status === 'success' ? 'Mission accomplished' : m.status === 'failed' ? `Mission stopped${m.failureReason ? `: ${m.failureReason}` : ''}` : 'Recovery verified; mission continues' } : revealed && t
       ? { fault: FAULT_LABEL[t.recycler.faultKind], outcome: m.status === 'success' ? 'Mission accomplished' : m.status === 'failed' ? `Mission stopped${m.failureReason ? `: ${m.failureReason}` : ''}` : 'Repair verified; mission continues' }
       : null,
   };

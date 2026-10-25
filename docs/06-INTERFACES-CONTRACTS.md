@@ -237,3 +237,9 @@ Defined in `src/simulation/training/types.ts` and re-exported from `types.ts`:
 - `HabitatSceneProps` gains optional `viewMode`, `onViewModeChange`, `onTrainingAction`, `selectedComponentId`, `onSelectComponent`. Existing callers keep working unchanged.
 
 These changes are backwards compatible; per the governing rule they still need sign-off from all three owners.
+
+## Multi-mission contracts
+
+`MissionState` optionally carries `missionVersion` and typed `emergency` state; the existing seven module IDs and Red Storm fields remain compatible. `MissionAction` adds `ADVANCE_MINUTES` and a discriminated `EMERGENCY_ACTION.command` union. `createRegisteredMission(id, fault?)` initializes the registry scenario. Successful atmospheric actions expose `decisionState` plus intermediate `transitions` for history recording; these are transient return values rather than nested saved-state history.
+
+The store accepts `startMission(id?, fault?)` and `restoreSession(id?)`. Saves use a validated v2 envelope indexed by mission ID/version, with legacy Red Storm migration. Reset/rewind preserve selected scenario identity. Minute snapshots use fractional derived `hour` values; exact `snapshotId` selection is preferred. Scene action callbacks accept the broader `MissionAction` union and remain requests validated by the engine. See [21-MULTI-MISSION-EXPANSION.md](21-MULTI-MISSION-EXPANSION.md).

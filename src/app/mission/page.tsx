@@ -7,6 +7,7 @@ import { logOut } from '@/server/auth/actions';
 import { GUEST_COOKIE, GUEST_LIMIT_MS } from '@/config/guest';
 import { MissionWorkspace } from '@/features/mission-ui/components/MissionWorkspace';
 import { GuestAccess } from '@/features/mission-ui/components/GuestAccess';
+import { isMissionId, RED_STORM_ID } from '@/simulation/missions/registry';
 import { MissionResultRecorder } from '@/features/mission-ui/components/MissionResultRecorder';
 
 export const dynamic = 'force-dynamic';
@@ -25,8 +26,8 @@ async function pausedClassName(userId: string): Promise<string | null> {
   }
 }
 
-export default async function MissionPage({ searchParams }: { searchParams: Promise<{ tour?: string }> }) {
-  const [{ tour }, user, jar] = await Promise.all([searchParams, getCurrentUser(), cookies()]);
+export default async function MissionPage({ searchParams }: { searchParams: Promise<{ tour?: string; mission?: string }> }) {
+  const [{ tour, mission }, user, jar] = await Promise.all([searchParams, getCurrentUser(), cookies()]);
 
   if (user && user.role !== 'TEACHER') {
     const paused = await pausedClassName(user.id);
@@ -47,6 +48,8 @@ export default async function MissionPage({ searchParams }: { searchParams: Prom
       );
     }
   }
+
+  const missionId = mission && isMissionId(mission) ? mission : RED_STORM_ID;
 
   // Signed-in users play without limit; guests get a fixed trial from their first visit.
   let account: React.ReactNode;
@@ -74,7 +77,7 @@ export default async function MissionPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <MissionWorkspace account={account} startTour={tour === '1'} />
+      <MissionWorkspace key={missionId} account={account} startTour={tour === '1'} missionId={missionId} />
       {user && user.role !== 'TEACHER' && <MissionResultRecorder />}
     </>
   );

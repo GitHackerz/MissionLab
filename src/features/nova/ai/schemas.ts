@@ -16,8 +16,23 @@ const num = z.number().finite();
 
 const reading = z.object({ label: str(80), value: num, unit: str(12), min: num, max: num, inRange: z.boolean() }).strict();
 
+const atmosphere = z
+  .object({
+    metrics: z.array(z.object({ label: str(60), value: num.nullable(), unit: str(16), limit: str(80) }).strict()).max(8),
+    tests: z.array(str(80)).max(8),
+    evidence: z.array(z.object({ test: str(80), minute: num, readings: z.array(z.object({ label: str(80), value: num, unit: str(16) }).strict()).max(8) }).strict()).max(3),
+    inspected: z.array(str(60)).max(8),
+    procedureActive: z.boolean(),
+    verification: z.enum(['none', 'running', 'passed', 'failed']),
+  })
+  .strict();
+
 const context = z
   .object({
+    missionId: str(60),
+    missionTitle: str(60),
+    concept: str(300),
+    atmosphere: atmosphere.nullable(),
     mission: z.object({ hour: num, durationHours: num, status: str(16), stormActive: z.boolean(), crew: num }).strict(),
     stage: z.enum(['free', 'power-plan', 'monitor', 'diagnose-start', 'diagnose-conclude', 'plan-repair', 'repair', 'verify', 'retry', 'recovered', 'concluded']),
     objective: str(400),

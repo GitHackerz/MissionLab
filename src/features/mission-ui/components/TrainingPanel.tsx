@@ -1,6 +1,7 @@
 'use client';
 
 import { RecyclerWorkbench } from '@/features/explore/ui/tasks/RecyclerWorkbench';
+import { AtmosphereWorkbench } from './atmosphere/AtmosphereWorkbench';
 import React, { useMemo, useState } from 'react';
 import { CheckCircle2, Circle, FlaskConical, Lightbulb, Microscope, Wrench, XCircle, Box } from 'lucide-react';
 import { useMissionStore } from '@/state/missionStore';
@@ -88,6 +89,7 @@ export const LegacyTrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded
   const guidance = useMemo(() => getGuidance(missionState), [missionState]);
   const outlook = useMemo(() => (t ? forecastPlan(missionState, currentPlan(missionState)) : null), [missionState, t]);
 
+  if (missionState.emergency) return <AtmosphereWorkbench />;
   if (!t) {
     return <div className="p-4 text-xs text-stone-400">This state has no training model (fixture). Reset the mission or choose the engine demo.</div>;
   }
@@ -345,6 +347,8 @@ export const TrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded = fal
   const viewMode = useMissionStore(s => s.viewMode);
   const setView = useMissionStore(s => s.setViewMode);
   const select = useMissionStore(s => s.selectModule);
+  const emergency = useMissionStore(s => s.missionState.emergency);
+  if (emergency) return <AtmosphereWorkbench />;
   if (embedded) return <RecyclerWorkbench />;
   return <div>
     <div className="p-4 pb-0"><button type="button" className="game-button w-full" onClick={() => { select('water-recycler'); setView(viewMode === 'service' ? 'colony' : 'service'); }}>{viewMode === 'service' ? 'Return to Colony Overview' : 'Open equipment focus'}</button></div>

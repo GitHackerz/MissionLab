@@ -98,3 +98,7 @@ Earlier documents/fixtures claimed blackout at hour 25, zero water before hour 7
 - **Forecast:** `forecastPlan(state, loads)` simulates the real engine on a copy; it assumes no unforeseen faults.
 - **Assessment:** `assessLearning`, `getGuidance` (pure functions of state).
 - Tests: `src/simulation/__tests__/training.test.ts` (faults, evidence, validation, wrong/correct replacement, retry, verification, forecast, replay, assessment).
+
+## Multi-mission extension
+
+The preceding equations and hourly boundaries describe **Red Storm**. Pressure Drop and Silent Air use the registered minute-step atmospheric systems in `src/simulation/missions/`. `createRegisteredMission` selects a stable mission/version; `ADVANCE_MINUTES` integrates integer minutes and the hour-based API adapts to that timestep. Conserved molar species determine pressure, oxygen partial pressure and CO₂ ppm; stored oxygen is a separate inventory. See [the expansion report](21-MULTI-MISSION-EXPANSION.md) for equations, units, thresholds and actual outcome paths. Pure batched progression remains deterministic; UI waits pause at new atmospheric warnings.

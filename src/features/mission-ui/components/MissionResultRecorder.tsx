@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useMissionStore } from '@/state/missionStore';
 import { getMissionSummary } from '@/simulation/debrief';
 import { assessLearning } from '@/simulation/training/assessment';
+import { getAtmosphericSummary } from '@/simulation/missions/debrief';
 import { recordMissionRun } from '@/server/classes/actions';
 
 /** Sends the engine's own summary to the server once per finished mission (signed-in students only). */
@@ -19,11 +20,19 @@ export function MissionResultRecorder() {
     recorded.current.add(key);
 
     const summary = getMissionSummary(history);
-    const assessment = assessLearning(missionState);
+    // Atmospheric missions grade from their own evidence; Red Storm from the recycler training model.
+    const skills = missionState.emergency
+      ? getAtmosphericSummary(history).assessments.map(({ label, rating }) => ({
+          id: label.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '').slice(0, 40),
+          label,
+          rating: rating.toLowerCase().replace(' ', '-') as 'not-demonstrated' | 'developing' | 'proficient',
+        }))
+      : assessLearning(missionState)?.dimensions.map(({ id, label, rating }) => ({ id, label, rating })) ?? null;
     recordMissionRun({
       scenarioId: summary.scenarioId,
       status: missionState.status,
-      finalHour: summary.finalHour,
+      // Atmospheric missions run in minutes, so their hour clock is fractional.
+      finalHour: Math.ceil(summary.finalHour),
       durationHours: summary.durationHours,
       minBatteryKwh: summary.minBatteryKwh,
       minWaterLiters: summary.minWaterLiters,
@@ -32,7 +41,7 @@ export function MissionResultRecorder() {
       failureKind: summary.rootCause?.kind ?? null,
       failureReason: summary.failureReason ?? null,
       decisions: summary.keyDecisions.length,
-      skills: assessment ? assessment.dimensions.map(({ id, label, rating }) => ({ id, label, rating })) : null,
+      skills,
     }).catch(() => {
       // Saving is best-effort: a database outage must never interrupt the mission.
       recorded.current.delete(key);

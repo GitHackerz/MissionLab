@@ -17,13 +17,9 @@ The server only **stores** the engine's own `MissionSummary`; it never computes 
 
 ## Publish a new mission (3 steps)
 
-1. **Give the mission its own config** with a unique `scenarioId`, e.g. `mission-02-eclss-cascade`
-   (see `RED_STORM_CONFIG` in `src/simulation/config.ts`). The engine copies it into every
-   `MissionState`, and finished runs are saved with it.
-2. **Make it playable** at a route, e.g. `/mission?m=mission-02-eclss-cascade` or its own page,
-   with `<MissionResultRecorder />` mounted for signed-in students (see `src/app/mission/page.tsx`).
-3. **Flip it on in `src/config/missions.ts`:** set `status: 'available'` and `href` to that route.
-   The `id` must equal the `scenarioId` from step 1.
+1. **Define the mission** in `src/simulation/missions/registry.ts` (unique `id`, briefing, objectives, config; atmospheric missions also an `emergency` rule set). The engine copies the id into every `MissionState.scenarioId`, and finished runs are saved with it.
+2. **Make it playable.** `/mission?mission=<id>` already starts any registered mission through `MissionIntro`; `MissionResultRecorder` is mounted for signed-in students in `src/app/mission/page.tsx`.
+3. **Flip it on in `src/config/missions.ts`:** set `status: 'available'` and `href: '/mission?mission=<id>'`. The `id` must equal the registry id (a test enforces this).
 
 That's all. Teachers can assign it immediately; it appears on student dashboards and in history.
 Missions marked `coming-soon` are listed but can't be assigned or played.

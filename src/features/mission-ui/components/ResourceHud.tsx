@@ -1,5 +1,6 @@
 'use client';
 
+import { EmergencyTelemetry } from './atmosphere/EmergencyTelemetry';
 import React from 'react';
 import { useMissionStore } from '@/state/missionStore';
 import { Zap, Droplets, Wind, Users, Award, AlertCircle } from 'lucide-react';
@@ -19,6 +20,8 @@ export const ResourceHud: React.FC = () => {
   const isOxygenLow = resources.oxygenKg <= config.oxygenSafetyThresholdKg;
 
   return (
+    <>
+    {missionState.emergency && <div className="sticky top-0 z-20"><EmergencyTelemetry /></div>}
     <div id="tour-resources" className="bg-[#180b08] border-b border-mars-border px-4 py-2.5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 select-none">
       {/* 1. Electrical Power */}
       <div className={`p-2 rounded border ${isBatteryLow ? 'bg-red-950/40 border-red-500/60' : 'bg-black/30 border-mars-border/80'}`}>
@@ -114,5 +117,6 @@ export const ResourceHud: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };

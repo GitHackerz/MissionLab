@@ -35,6 +35,10 @@ export function deriveEvents(m: MissionState): NovaEvent[] {
   if (m.stormActive && stage === 'power-plan') {
     out.push({ key: 'storm', priority: 2, message: 'Solar energy is decreasing. We should investigate how the habitat uses electricity. I marked the Power Room.', emotion: 'concerned', visualAction: { type: 'point', targetId: 'station:power-console' } });
   }
+  if (m.emergency && m.events.some((e) => e.type === 'ATMOSPHERE_WARNING')) {
+    const station = m.emergency.kind === 'pressure' ? 'station:crew-terminal' : 'station:air-unit';
+    out.push({ key: 'atmosphere-alarm', priority: 3, message: 'An atmosphere alarm just triggered. Do not act on one reading: compare independent instruments first. I marked the console.', emotion: 'concerned', warning: true, visualAction: { type: 'point', targetId: station } });
+  }
   if (m.resources.batteryKwh < BATTERY_LOW_KWH) {
     out.push({ key: 'battery-low', priority: 3, message: 'The battery is running low. Check what the habitat is using against what the panels make.', emotion: 'concerned', warning: true, visualAction: { type: 'point', targetId: 'station:power-console' } });
   }

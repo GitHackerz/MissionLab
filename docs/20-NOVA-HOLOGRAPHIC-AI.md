@@ -70,3 +70,6 @@ Browser-verified manually in the app (see the implementation report in the PR/ha
 - The spoiler text filter is deliberately narrow; Gemini phrasing the answer indirectly is only mitigated by the prompt and by the model never receiving the answer.
 - Markers on equipment parts are derived from the recycler model's layout; if the model is moved or rescaled, update `PART_LIST` in `targets.ts`.
 - On narrow phones the dock shares space with the touch controls.
+
+## Atmospheric missions (Pressure Drop, Silent Air)
+The learner context carries `missionId`, the mission concept and an `atmosphere` block: the telemetry strip exactly as the learner sees it, the tests they ran with their readings, the components they inspected and the monitored-recovery state. The configured fault is never read; it appears in `debrief` only after the outcome is known. Offline hints for these missions use the concept (level 1), the next unused diagnostic (level 2) and a pointer to the mission's console (level 3). An `ATMOSPHERE_WARNING` triggers one proactive alarm message.

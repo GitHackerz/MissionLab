@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { advanceMission, applyMissionAction, createTrainingMission } from '@/simulation/engine';
+import { advanceMission, applyMissionAction, createRegisteredMission, createTrainingMission } from '@/simulation/engine';
 import { RED_STORM_CONFIG } from '@/simulation/config';
 import type { MissionState } from '@/simulation/types';
 import type { RecyclerFaultKind } from '@/simulation/training/types';
@@ -368,5 +368,49 @@ describe('server rate limiting', () => {
   it('enforces the global daily quota', () => {
     expect(checkLimit('a', cfg, 0).ok && checkLimit('b', cfg, 0).ok && checkLimit('c', cfg, 0).ok).toBe(true);
     expect(checkLimit('d', cfg, 1)).toMatchObject({ ok: false, reason: 'quota' });
+  });
+});
+
+describe('NOVA in the atmospheric missions', () => {
+  const cases = [
+    ['mission-02-pressure-drop', ['seal-leak', 'valve-stuck', 'pressure-sensor-drift'], 'station:crew-terminal'],
+    ['mission-03-silent-air', ['fan-failure', 'media-exhausted', 'co2-sensor-drift'], 'station:air-unit'],
+  ] as const;
+
+  it.each(cases.flatMap(([id, faults, station]) => faults.map((f) => [id, f, station] as const)))('%s / %s: context never contains the configured fault', (id, fault, station) => {
+    const m = createRegisteredMission(id, fault);
+    const ctx = buildLearnerContext(m, view);
+    const json = JSON.stringify(ctx);
+    expect(ctx.atmosphere).not.toBeNull();
+    expect(ctx.revealed).toBe(false);
+    expect(json).not.toMatch(/seal-leak|valve-stuck|sensor-drift|fan-failure|media-exhausted|"fault"/);
+    expect(novaRequestSchema.safeParse(buildRequest('hint', ctx, 1)).success).toBe(true);
+    // Hints point at the mission's console, never at recycler parts, and never name the fault.
+    for (const level of [1, 2, 3] as const) {
+      const r = offlineReply(buildRequest('hint', ctx, level));
+      expect(r.message).not.toMatch(/seal|stuck|drift|failure|exhausted|leak is|broken/i);
+      if (r.visualAction.type === 'point') expect(r.visualAction.targetId).toBe(station);
+    }
+    expect(offlineReply(buildRequest('where', ctx, 0)).visualAction).toEqual({ type: 'point', targetId: station });
+  });
+
+  it('moves the next suggested test forward as the learner collects evidence, and reveals the fault only after the outcome', () => {
+    let m = createRegisteredMission('mission-02-pressure-drop', 'seal-leak');
+    const first = buildLearnerContext(m, view).nextProbe!.test;
+    m = applyMissionAction(m, { type: 'EMERGENCY_ACTION', command: { kind: 'diagnostic', test: 'zone-survey' } }).state;
+    const ctx = buildLearnerContext(m, view);
+    expect(ctx.nextProbe!.test).not.toBe(first);
+    expect(ctx.atmosphere!.tests).toContain('Compare compartment gauges');
+    expect(ctx.atmosphere!.evidence).toHaveLength(1);
+    m.status = 'failed';
+    expect(buildLearnerContext(m, view).debrief?.fault).toBe('seal leak');
+  });
+
+  it('raises one proactive alarm that points at the console', () => {
+    const m = createRegisteredMission('mission-03-silent-air', 'fan-failure');
+    const advanced = advanceMission(m, 1);
+    const alarm = deriveEvents(advanced).find((e) => e.key === 'atmosphere-alarm');
+    expect(alarm?.visualAction).toEqual({ type: 'point', targetId: 'station:air-unit' });
+    expect(alarm?.message).not.toMatch(/fan|scrubber|sensor/i);
   });
 });
