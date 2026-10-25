@@ -14,7 +14,7 @@ The implementation retains the existing state, history, collision layout, charac
 
 `Start Training` on the existing landing page leads to the training menu. The menu explains the activity and controls; the catalog presents the sole available mission, The Red Storm, with narrative, objectives, introductory difficulty, estimated play time and guidance selection. A separate briefing gives the engineer's role, the first destination and a clear Begin Mission action.
 
-Cadet, Engineer and Commander use the same physics; the selected guidance mode is applied through `SET_LEARNING_MODE`. Starting a new attempt resets through the existing store action. Returning to the training menu offers Continue current mission for an active attempt, with state and pose retained. This is an in-memory continuation, not a new persistence or cloud-save feature. Starting another attempt explicitly warns that it replaces the current one.
+Cadet, Engineer and Commander use the same physics; the selected guidance mode is applied through `SET_LEARNING_MODE`. Starting a new attempt resets through the existing store action. Returning to the training menu offers Continue current mission for an active attempt, with state and pose retained. The existing store now also restores a structurally validated browser-local flight record after reload; cloud synchronization is not implemented. Starting another attempt explicitly warns that it replaces the current one.
 
 Radiation shelter training is labelled future/not playable. A dust storm is never presented as a radiation event.
 
@@ -72,7 +72,7 @@ The added objectives, circuit bindings and repair instructions are pure presenta
 
 ## Validation and remaining scope
 
-Final commands, browser observations and limitations are recorded after the walkthrough below. Audio, irrigation experiments, a radiation scenario and new persistence infrastructure remain outside this change. The existing account/guest policy is unchanged. Software-rendered Chrome is useful for correctness and screenshots but cannot establish a school-device frame-rate guarantee.
+Final commands, browser observations and limitations are recorded below. Irrigation experiments and a radiation scenario remain future work. Concurrent optional audio and PWA work is preserved; ambient machinery sound is gated by actual operating equipment, including cancellation of a pending sound stop when power quickly returns. The existing account/guest policy is unchanged. Software-rendered Chrome is useful for correctness and screenshots but cannot establish a school-device frame-rate guarantee.
 
 ### Input and review refinements
 
@@ -89,3 +89,22 @@ Local restore structurally checks mission resources, modules, training records a
 A failed startup can request a **verification-only retest** through the existing `RESTORE_TEST_READY` action. The engine permits that request only after a failed test with a closed, fully assembled unit. It does not replace any part or remove an unresolved fault. A repaired unit that failed because its circuit was off can therefore be powered and measured again without consuming another spare. Pending verification is shown as repairing; a closed unit with a failed verification remains warning until a successful test. Retest actions retain their simulation-time costs.
 
 For rendered QA, `NEXT_PUBLIC_MISSIONLAB_SCENE_DEBUG=1` can explicitly expose the same scene/pose diagnostic references available in development. It adds no action API or simulation values. The default production build leaves those references out. A separate frozen QA build avoids live development refreshes while another workstream edits this shared checkout.
+
+
+### Physical interaction recovery
+
+The next repair instruction checks the selected bay's physical state as well as completed procedure steps. Opening a different cartridge's clips cannot skip the intended release, and every loose retainer must be secured before closing the cover. If an original component has already been removed without a compatible spare, the workbench explains the existing engine limitation and offers the actual Autopsy rewind rather than inventing a replacement or inventory refund.
+
+### Executed verification (25 October 2026)
+
+- `pnpm typecheck`: passed.
+- `pnpm lint`: passed.
+- `pnpm test`: 14 files, **135 tests passed**. Coverage includes canonical mission outcomes, deterministic replay, pump/filter/sensor procedures, failed verification, power allocation, shared safety circuit availability, ambient operating-state gating, wrong-bay interaction recovery, keyboard focus and browser-local restore/corrupt-save rejection. Vitest prints the existing multiple-Three.js-import warning in scene tests.
+- Frozen production QA build: passed. Browser QA used a separate output directory with the explicitly enabled scene diagnostic flag, so live edits in this shared checkout could not reset the test session.
+- Desktop Chromium: menu → Red Storm catalog → briefing → habitat; keyboard movement to Power; shedding greenhouse and research loads; actual scene main-light intensity 34 → 0 and safety intensity 0 → 7.5; restoration → 34; unaffected Life Support circuit; progression to recycler fault; instrument evidence and learner diagnosis; all 16 validated procedure steps, including a real projected 3D cartridge click; successful startup verification; return to exploration; engine mission success; Autopsy and actual decision rewind/branch comparison. No simulation state was injected to complete this journey. The first script's extra overview check hit an ambiguous duplicate button locator after the completed core journey; a separately scoped browser check passed overview/return and continuation at actual mission hour 6.
+- Mobile Chromium at 390 × 844: startup, on-screen movement controls, contextual equipment entry, focused task and diagnostic/evidence controls passed, with no horizontal overflow and no captured browser errors. The focused scene sampled 60 render calls and 12,164 triangles; this is a render-complexity observation, not a frame-rate guarantee.
+- Saved-session browser check: advancing through the actual Wait action, reload, Continue, and restored hour 6 passed with no captured browser errors.
+
+Screenshots were inspected for the menu, briefing, load-shedding, greenhouse safety lighting, recycler investigation/intervention/verification, mobile layout and Autopsy. Test scripts and screenshots are local QA artifacts under `/tmp/missionlab-realism-*`.
+
+The default release build and final browser smoke are recorded below after completion. School-device performance, full account/email flows, audio quality across devices, installation and complete offline play have not been certified by this gameplay walkthrough. Radiation and individual irrigation/plant-health simulation remain explicitly unavailable. Browser-local saves can be lost if site storage is cleared. The required `graphify update .` was attempted but the installed launcher fails with `ModuleNotFoundError: No module named 'graphify'`; no graph output was generated.

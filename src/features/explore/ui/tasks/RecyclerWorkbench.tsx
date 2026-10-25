@@ -472,7 +472,7 @@ export function RecyclerWorkbench() {
                 </span>
               </div>
               <Readings readings={readings} />
-              
+
               <fieldset className="space-y-3 pt-2">
                 <legend className="mb-2 text-base font-semibold text-cream">
                   Which hypothesis fits the telemetry evidence?
