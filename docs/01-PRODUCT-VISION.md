@@ -79,7 +79,7 @@ graph TD
 1. **State-Driven 3D Digital Twin:** The Three.js environment is not decorative backdrop art. Every mesh, material shader, lighting condition, and status marker is directly coupled to typed simulation telemetry.
 2. **Deterministic Physics Engine:** Outpost physics run on a pure, frame-independent fixed-step TypeScript engine. Given the exact same inputs and decisions, the outcome is 100% reproducible.
 3. **Causal Timeline Rewind:** Students can jump backward to any previous hour, branch their timeline, take an alternate decision (e.g., shedding science power instead of ignoring a pump leak), and compare the two divergent timelines.
-4. **Mission Autopsy:** Instead of arbitrary pass/fail grading, the debrief algorithm reconstructs the causal chain from recorded engine events (e.g., *"At Hour 4, failure to shed greenhouse lighting created a 4.4 kW deficit. Battery depleted at Hour 25, terminating life support"*).
+4. **Mission Autopsy:** Instead of arbitrary pass/fail grading, the debrief algorithm reconstructs the causal chain from recorded engine events (e.g., *"Continuing greenhouse and research loads created a 4.4 kW deficit. Battery depleted at Hour 25; essential electrical supply became insufficient during the next interval, ending the mission at Hour 26"*).
 
 ---
 

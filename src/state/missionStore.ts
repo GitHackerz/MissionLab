@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import {
+import type {
   ActionResult,
   AvailableAction,
   MissionAction,
   MissionSnapshot,
+  MissionBranch,
   MissionState,
   ModuleId,
   RecyclerComponentId,
@@ -13,9 +14,10 @@ import {
   advanceMission,
   applyMissionAction,
   createInitialMission,
+  createTrainingMission,
   getAvailableActions,
 } from '@/simulation/engine';
-import { createSnapshot } from '@/simulation/history';
+import { createSnapshot, forkMission, recordMissionAction } from '@/simulation/history';
 import { FIXTURES } from '@/simulation/fixtures';
 import { RED_STORM_CONFIG } from '@/simulation/config';
 
@@ -25,20 +27,21 @@ export interface MissionStore {
   selectedModuleId: ModuleId | null;
   availableActions: AvailableAction[];
   history: MissionSnapshot[];
+  branches: MissionBranch[];
   activeFixtureKey: string;
+  /** True once the component-level training model is active (docs/16). Off by default so the pure scenario engine behaves as specified. */
+  trainingMode: boolean;
   /** Latest educational feedback from a training action (accepted or rejected). */
   lastFeedback: TrainingFeedback | null;
-  /** 'service' = detailed equipment view of the water recycler in the 3D scene. */
+  /** 'service' = detailed equipment view of the water recycler in the colony scene. */
   viewMode: 'colony' | 'service';
-  /** Earlier timelines abandoned by a rewind, kept for comparison. */
-  abandonedTimelines: MissionSnapshot[][];
+  selectedComponentId: RecyclerComponentId | null;
 
   // Actions
-  selectedComponentId: RecyclerComponentId | null;
+  enableTraining: () => void;
   selectComponent: (id: RecyclerComponentId | null) => void;
   setViewMode: (mode: 'colony' | 'service') => void;
   clearFeedback: () => void;
-  rewindToSnapshot: (snapshotId: string) => void;
   selectModule: (moduleId: ModuleId | null) => void;
   applyAction: (action: MissionAction) => ActionResult;
   advanceTime: (hours: number) => void;
@@ -55,30 +58,28 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
   selectedModuleId: 'water-recycler', // Start with an inspectable module
   availableActions: getAvailableActions(initialMission),
   history: [initialSnapshot],
+  branches: [],
   activeFixtureKey: 'initial',
+  trainingMode: false,
   lastFeedback: null,
   viewMode: 'colony',
-  abandonedTimelines: [],
-
   selectedComponentId: null,
+
+  enableTraining: () => {
+    if (get().trainingMode) return;
+    const state = createTrainingMission(RED_STORM_CONFIG);
+    set({
+      trainingMode: true,
+      missionState: state,
+      availableActions: getAvailableActions(state),
+      history: [createSnapshot(state)],
+      branches: [],
+      activeFixtureKey: 'initial',
+    });
+  },
   selectComponent: (id) => set({ selectedComponentId: id }),
   setViewMode: (mode) => set({ viewMode: mode, ...(mode === 'service' ? { selectedModuleId: 'water-recycler' as const } : {}) }),
   clearFeedback: () => set({ lastFeedback: null }),
-
-  rewindToSnapshot: (snapshotId: string) => {
-    const { history, abandonedTimelines } = get();
-    const index = history.findIndex((s) => s.snapshotId === snapshotId);
-    if (index < 0) return;
-    const restored: MissionState = JSON.parse(JSON.stringify(history[index].state));
-    set({
-      missionState: restored,
-      availableActions: getAvailableActions(restored),
-      history: history.slice(0, index + 1),
-      abandonedTimelines: index < history.length - 1 ? [...abandonedTimelines, history] : abandonedTimelines,
-      lastFeedback: null,
-      viewMode: 'colony',
-    });
-  },
 
   selectModule: (moduleId: ModuleId | null) => {
     set({ selectedModuleId: moduleId });
@@ -89,84 +90,73 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
 
     // Special case: Session Reset
     if (action.type === 'RESET_MISSION') {
-      const resetState = createInitialMission(RED_STORM_CONFIG);
+      const resetState = (get().trainingMode ? createTrainingMission : createInitialMission)(RED_STORM_CONFIG);
       const snap = createSnapshot(resetState, action);
       set({
         missionState: resetState,
         availableActions: getAvailableActions(resetState),
         history: [snap],
         activeFixtureKey: 'initial',
+        branches: [],
         lastFeedback: null,
         viewMode: 'colony',
-        abandonedTimelines: [],
       });
       return { ok: true, state: resetState };
     }
 
     // Special case: Session Rewind
     if (action.type === 'REWIND_TO') {
-      const targetSnap = history.find((s) => s.hour === action.hour);
-      if (!targetSnap) {
-        return { ok: false, reason: `Snapshot at hour ${action.hour} not found`, state: missionState };
+      const { branches } = get();
+      if (!Number.isSafeInteger(action.hour) || action.hour < 0 || action.hour > missionState.hour || action.branchFrom !== missionState.branchId) {
+        return { ok: false, reason: 'Select an existing hour on the active branch.', state: missionState };
       }
-      const restoredState = JSON.parse(JSON.stringify(targetSnap.state));
-      set({
-        missionState: restoredState,
-        availableActions: getAvailableActions(restoredState),
-      });
+      const targetSnap = action.snapshotId
+        ? history.find(s => s.snapshotId === action.snapshotId && s.hour === action.hour)
+        : history.find(s => s.hour === action.hour);
+      if (!targetSnap) return { ok: false, reason: 'Snapshot not found. Select an existing decision point.', state: missionState };
+      const ownStart = history.findIndex(s => s.branchId === missionState.branchId);
+      const original: MissionBranch = { branchId: missionState.branchId,
+        parentBranchId: ownStart > 0 ? history[ownStart - 1].branchId : undefined,
+        forkHour: history[Math.max(0, ownStart)].hour,
+        snapshots: structuredClone(history), finalStatus: missionState.status };
+      const branch = forkMission(history, targetSnap.snapshotId, `branch-${branches.length + 1}`);
+      const restoredState = structuredClone(branch.snapshots.at(-1)!.state);
+      set({ missionState: restoredState, history: branch.snapshots,
+        branches: [...branches, original], availableActions: getAvailableActions(restoredState),
+        lastFeedback: null, viewMode: 'colony' });
       return { ok: true, state: restoredState };
     }
 
     // In-world actions
-    const result = applyMissionAction(missionState, action);
+    const transition = recordMissionAction(missionState, history, action);
+    const result = transition.result;
     if (result.ok) {
-      const newSnap = createSnapshot(result.state, action);
-      set({
-        missionState: result.state,
-        availableActions: getAvailableActions(result.state),
-        history: [...history, newSnap],
-        lastFeedback: result.feedback ?? null,
-      });
-    } else {
+      set({ missionState: result.state,
+        availableActions: getAvailableActions(result.state), history: transition.history,
+        ...(result.feedback || get().lastFeedback ? { lastFeedback: result.feedback ?? null } : {}) });
+    } else if (result.feedback || result.state !== missionState) {
       // Rejected training actions still return a state with the rejection logged as learning evidence.
-      set({
-        lastFeedback: result.feedback ?? { kind: 'rejected', title: 'Not possible', body: result.reason },
-        ...(result.state !== missionState ? { missionState: result.state } : {}),
-      });
+      set({ lastFeedback: result.feedback ?? { kind: 'rejected', title: 'Not possible', body: result.reason },
+        ...(result.state !== missionState ? { missionState: result.state } : {}) });
     }
-
     return result;
   },
 
   advanceTime: (hours: number) => {
-    const { missionState, history } = get();
-    const nextState = advanceMission(missionState, hours);
-    const snap = createSnapshot(nextState, { type: 'ADVANCE_TIME', hours });
-    set({
-      missionState: nextState,
-      availableActions: getAvailableActions(nextState),
-      history: [...history, snap],
-    });
+    get().applyAction({ type: 'ADVANCE_TIME', hours });
   },
 
   loadFixture: (fixtureKey: string) => {
+    if (fixtureKey === 'initial') { get().resetMission(); return; }
     // Accelerated demo path: the REAL engine, no canned values. Plan applied, then time advanced to the fault.
     if (fixtureKey === 'demo-fault') {
-      const planned = applyMissionAction(createInitialMission(RED_STORM_CONFIG), {
-        type: 'APPLY_POWER_PLAN',
-        loads: { greenhouse: false, 'research-lab': false },
+      const planned = applyMissionAction(createTrainingMission(RED_STORM_CONFIG), {
+        type: 'APPLY_POWER_PLAN', loads: { greenhouse: false, 'research-lab': false },
       });
       const demo = advanceMission(planned.state, 30);
-      const snap = createSnapshot(demo);
-      set({
-        missionState: demo,
-        availableActions: getAvailableActions(demo),
-        history: [snap],
-        activeFixtureKey: fixtureKey,
-        lastFeedback: null,
-        selectedModuleId: 'water-recycler',
-        abandonedTimelines: [],
-      });
+      set({ trainingMode: true, missionState: demo, availableActions: getAvailableActions(demo),
+        history: [createSnapshot(demo)], activeFixtureKey: fixtureKey, branches: [], lastFeedback: null,
+        selectedModuleId: 'water-recycler' });
       return;
     }
     const fixture = FIXTURES[fixtureKey];
@@ -181,8 +171,8 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
       availableActions: getAvailableActions(stateCopy),
       history: [snap],
       activeFixtureKey: fixtureKey,
+      branches: [],
       lastFeedback: null,
-      abandonedTimelines: [],
     });
   },
 

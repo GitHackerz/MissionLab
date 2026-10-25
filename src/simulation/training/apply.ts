@@ -245,7 +245,6 @@ export function syncRecyclerModule(state: MissionState): void {
   const op = getRecyclerOperation(state);
   if (!m.enabled) {
     m.status = 'offline';
-    m.suppliedPowerKw = 0;
     return;
   }
   if (t.recycler.procedure.maintenanceMode || t.recycler.procedure.hatchOpen) {
@@ -254,10 +253,9 @@ export function syncRecyclerModule(state: MissionState): void {
     return;
   }
   delete m.repairHoursRemaining;
-  m.suppliedPowerKw = m.powerDemandKw;
   if (op.activeFault === 'pump-seized') { m.status = 'degraded'; m.health = 0.35; }
   else if (op.activeFault === 'filter-clogged') { m.status = 'degraded'; m.health = 0.55; }
-  else if (op.activeFault === 'sensor-drift') { m.status = 'warning'; m.health = 0.8; }
+  else if (op.activeFault === 'sensor-drift') { m.status = 'degraded'; m.health = 0.8; }
   else { m.status = 'operational'; m.health = isFaultPresent(state) ? 0.95 : Math.max(m.health, 1); }
 }
 

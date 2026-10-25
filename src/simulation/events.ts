@@ -1,5 +1,13 @@
-import { MissionEvent, MissionState } from './types';
+import type { MissionEvent, MissionState } from './types';
+import { getMissionConfig } from './config';
 import { syncRecyclerModule } from './training/apply';
+
+/** Mutating helpers are internal to an already cloned transition. */
+export function recordEvent(state: MissionState, event: Omit<MissionEvent, 'id' | 'hour'>): MissionEvent {
+  const result = { ...event, id: `${state.branchId}:event:${state.events.length}`, hour: state.hour };
+  state.events.push(result);
+  return result;
+}
 
 export interface ScheduledEvent {
   hour: number;
@@ -8,62 +16,46 @@ export interface ScheduledEvent {
   applyEffect: (state: MissionState) => void;
 }
 
-/**
- * Standard scheduled events for Mission 01: The Red Storm
- */
 export const RED_STORM_SCHEDULED_EVENTS: ScheduledEvent[] = [
   {
-    // Hour 1: the first simulated step already runs under storm conditions.
-    hour: 1,
-    trigger: (s) => !s.stormActive,
-    createEvent: () => ({
-      id: 'evt-storm-arrival',
-      hour: 1,
-      type: 'DUST_STORM_ARRIVAL',
-      severity: 'warning',
-      moduleId: 'solar-array',
-      message: 'Martian dust storm arrived. Solar generation collapsed from 10.0 kW to 4.0 kW.',
-    }),
-    applyEffect: (s) => {
+    hour: 0,
+    trigger: s => !s.events.some(e => e.type === 'DUST_STORM_ARRIVAL'),
+    createEvent: s => ({ id: 'evt-storm-arrival', hour: 0, type: 'DUST_STORM_ARRIVAL', severity: 'warning',
+      moduleId: 'solar-array', message: `Dust storm reduces solar generation to ${getMissionConfig(s).stormSolarGenerationKw} kW.` }),
+    applyEffect: s => {
       s.stormActive = true;
-      if (s.modules['solar-array']) {
-        s.modules['solar-array'].status = 'warning';
-        s.modules['solar-array'].health = 0.65;
-      }
+      s.modules['solar-array'].status = 'warning';
+      s.modules['solar-array'].health = 0.65;
     },
   },
   {
     hour: 30,
-    trigger: (s) =>
-      s.training ? s.training.recycler.faultOnsetHour === null : s.modules['water-recycler'].status === 'operational',
-    createEvent: (s) =>
-      s.training
-        ? {
-            // Symptom only: the root cause is for the learner to diagnose.
-            id: 'evt-recovery-low',
-            hour: 30,
-            type: 'WATER_RECOVERY_LOW',
-            severity: 'critical',
-            moduleId: 'water-recycler',
-            message: 'Water recovery rate has fallen below the expected operating range (0.42 L/h nominal). Inspect the water recycler.',
-          }
-        : {
-            id: 'evt-pump-fault',
-            hour: 30,
-            type: 'PUMP_MECHANICAL_FAULT',
-            severity: 'critical',
-            moduleId: 'water-recycler',
-            message: 'Water recycler primary distillation pump impeller seized. Water recovery dropped to 0 L/h.',
-          },
-    applyEffect: (s) => {
-      const recycler = s.modules['water-recycler'];
+    // A negative onset marks a forecast copy that assumes no unforeseen faults (training/power.ts).
+    trigger: s => !s.events.some(e => e.type === 'PUMP_MECHANICAL_FAULT' || e.type === 'WATER_RECOVERY_LOW')
+      && (s.training ? s.training.recycler.faultOnsetHour === null : true),
+    createEvent: s => s.training
+      // Training missions report the symptom only; the root cause is for the learner to diagnose.
+      ? { id: 'evt-recovery-low', hour: 30, type: 'WATER_RECOVERY_LOW', severity: 'critical',
+          moduleId: 'water-recycler', message: 'Water recovery rate has fallen below the expected operating range (0.42 L/h nominal). Inspect the water recycler.' }
+      : { id: 'evt-pump-fault', hour: 30, type: 'PUMP_MECHANICAL_FAULT', severity: 'critical',
+          moduleId: 'water-recycler', message: 'Recycler pump seized. Water recovery is 0 L/h until repair completes.' },
+    applyEffect: s => {
       if (s.training) {
         s.training.recycler.faultOnsetHour = s.hour;
         syncRecyclerModule(s);
-      } else if (recycler && recycler.status === 'operational') {
-        recycler.status = 'degraded';
-        recycler.health = 0.35;
+        return;
       }
+      s.modules['water-recycler'].status = 'degraded';
+      s.modules['water-recycler'].health = 0.35;
     },
   },
 ];
+
+export function processScheduledEvents(state: MissionState): void {
+  for (const event of RED_STORM_SCHEDULED_EVENTS) {
+    if (event.hour === state.hour && event.trigger(state)) {
+      state.events.push(event.createEvent(state));
+      event.applyEffect(state);
+    }
+  }
+}

@@ -85,6 +85,7 @@ describe('power planner and debrief', () => {
     fireEvent.click(screen.getByRole('button', { name: /Rewind before this/ }));
     expect(store().missionState.hour).toBe(0);
     expect(store().missionState.modules.greenhouse.enabled).toBe(true); // state before the plan decision
-    expect(store().abandonedTimelines).toHaveLength(1);
+    expect(store().branches).toHaveLength(1);
+    expect(store().missionState.branchId).toBe('branch-1');
   });
 });

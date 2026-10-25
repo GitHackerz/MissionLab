@@ -53,13 +53,13 @@ Milestone 5: Polish, Rehearsal & Pitch Defense
 
 | Task ID | Task Description | Owner | Priority | Dependencies | Deliverable | Status |
 |---|---|---|---|---|---|---|
-| **M1-01** | Implement discrete 1-hour fixed-step clock | Kammoun | P0 | M0-03 | `advanceMission` multi-step loop | Planned |
-| **M1-02** | Implement power allocation and load priority | Kammoun | P0 | M1-01 | Power balance equations | Planned |
-| **M1-03** | Implement water consumption and recovery balance | Kammoun | P0 | M1-01 | Distillation recovery calculations | Planned |
-| **M1-04** | Implement oxygen production and ECLSS coupling | Kammoun | P0 | M1-02 | Electrolysis respiration equations | Planned |
-| **M1-05** | Implement scheduled dust storm and pump fault | Kammoun | P0 | M1-01 | `events.ts` trigger execution | Planned |
-| **M1-06** | Implement action validation and preconditions | Kammoun | P0 | M0-02 | `validateAction` error handling | Planned |
-| **M1-07** | Write invariant unit tests for power/water balance | Kammoun | P0 | M1-02 | Suite of $\ge 12$ Vitest tests | Planned |
+| **M1-01** | Implement discrete 1-hour fixed-step clock | Kammoun | P0 | M0-03 | `advanceMission` multi-step loop | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
+| **M1-02** | Implement power allocation and load priority | Kammoun | P0 | M1-01 | Power balance equations | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
+| **M1-03** | Implement water consumption and recovery balance | Kammoun | P0 | M1-01 | Distillation recovery calculations | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
+| **M1-04** | Implement oxygen production and ECLSS coupling | Kammoun | P0 | M1-02 | Electrolysis respiration equations | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
+| **M1-05** | Implement scheduled dust storm and pump fault | Kammoun | P0 | M1-01 | `events.ts` trigger execution | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
+| **M1-06** | Implement action validation and preconditions | Kammoun | P0 | M0-02 | `validateAction` error handling | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
+| **M1-07** | Write invariant unit tests for power/water balance | Kammoun | P0 | M1-02 | Suite of $\ge 12$ Vitest tests | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
 
 ---
 
@@ -92,9 +92,9 @@ Milestone 5: Polish, Rehearsal & Pitch Defense
 
 | Task ID | Task Description | Owner | Priority | Dependencies | Deliverable | Status |
 |---|---|---|---|---|---|---|
-| **M4-01** | Capture immutable state snapshots at each step | Kammoun | P0 | M1-01 | `history.ts` snapshot recorder | Planned |
-| **M4-02** | Implement deterministic rewind and branch forking | Kammoun | P0 | M4-01 | `forkMission` timeline branching | Planned |
-| **M4-03** | Generate structured causal evidence for debrief | Kammoun | P0 | M4-01 | `autopsyCauseChain` generator | Planned |
+| **M4-01** | Capture immutable state snapshots at each step | Kammoun | P0 | M1-01 | `history.ts` snapshot recorder | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
+| **M4-02** | Implement deterministic rewind and branch forking | Kammoun | P0 | M4-01 | `forkMission` timeline branching | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
+| **M4-03** | Generate structured causal evidence for debrief | Kammoun | P0 | M4-01 | `autopsyCauseChain` generator | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
 | **M4-04** | Build Mission Autopsy verdict UI screen | Amina | P0 | M4-03 | Interactive debrief report | Planned |
 | **M4-05** | Build A/B branch comparison table | Amina | P0 | M4-02 | Side-by-side outcome delta view | Planned |
 
@@ -105,7 +105,7 @@ Milestone 5: Polish, Rehearsal & Pitch Defense
 | Task ID | Task Description | Owner | Priority | Dependencies | Deliverable | Status |
 |---|---|---|---|---|---|---|
 | **M5-01** | UI visual polish, typography, and responsive review | Amina | P0 | M4-04 | Polished command center styling | Planned |
-| **M5-02** | Full automated regression test suite run | Kammoun | P0 | All | All unit & invariant tests green | Planned |
+| **M5-02** | Full automated regression test suite run | Kammoun | P0 | All | All unit & invariant tests green | Implemented; verification in [report](16-IMPLEMENTATION-REPORT.md) |
 | **M5-03** | Verify production build and deploy to Vercel | Amina | P0 | All | Publicly accessible URL | Planned |
 | **M5-04** | Prepare offline local fallback bundle | Habib | P0 | M5-03 | Zero-network local demo backup | Planned |
 | **M5-05** | Complete 5-minute timed presentation rehearsal | All | P0 | M12-01 | Rehearsed live jury pitch | Planned |

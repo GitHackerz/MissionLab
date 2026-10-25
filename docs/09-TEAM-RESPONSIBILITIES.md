@@ -115,5 +115,5 @@ pnpm build
 ## Playable Habitat: ownership
 
 - **Habib:** `src/features/explore/**` (character, controller, camera, interior, interaction framework, task lifecycle) plus `SpriteLabel`.
-- **Kammoun:** no engine change was required. The habitat uses the existing procedure engine, `forecastPlan` and `APPLY_POWER_PLAN`. One rule change in this phase: the mission opens with `stormActive: true` and a logged arrival event.
+- **Kammoun:** no engine rule change was required. The habitat uses the existing procedure engine, `forecastPlan` and `APPLY_POWER_PLAN`. The training layer was merged on top of the simulation-core engine without changing its tests.
 - **Amina:** the task panels are reused (`TrainingPanel` gained an `embedded` flag, `PowerPlanner` a `schematic` flag, `FeedbackToast` a `className`); `page.tsx` hosts the entry button and switches between colony and habitat.

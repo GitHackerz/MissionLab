@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { advanceMission, applyMissionAction, createInitialMission, type MissionState } from '@/simulation';
+import { advanceMission, applyMissionAction, createTrainingMission, type MissionState } from '@/simulation';
 import { actionForHotspot, hotspotKey, nextHintKey } from '../utils/serviceInteractions';
 
 const faultState = (): MissionState => {
-  const planned = applyMissionAction(createInitialMission(), { type: 'APPLY_POWER_PLAN', loads: { greenhouse: false, 'research-lab': false } });
+  const planned = applyMissionAction(createTrainingMission(), { type: 'APPLY_POWER_PLAN', loads: { greenhouse: false, 'research-lab': false } });
   return advanceMission(planned.state, 30);
 };
 

@@ -27,7 +27,7 @@ Discover → Investigate → Understand → Plan → Execute → Verify → Refl
 - **3D (Habib, `src/features/habitat-3d/**`)** renders the recycler model from `training.recycler.procedure` and emits `TrainingAction` requests through `onTrainingAction`. It animates toward authoritative state and never changes it.
 - **UI (Amina, `src/features/mission-ui/**`, `src/state/missionStore.ts`)** hosts guidance, notebook, procedure checklist, power planner, debrief, feedback toast.
 - Contracts: `src/simulation/training/types.ts`; `MissionState.training?`, `MissionAction` (union extended), `ActionResult.feedback?` and the optional `HabitatSceneProps` additions in `types.ts`. Everything is additive and optional; fixtures without `training` keep the legacy behaviour.
-- Cross-team edits made for integration (smallest change, please review): `missionStore.ts` (feedback, view mode, `rewindToSnapshot`, `demo-fault` loader), `page.tsx` (props + `SidePanel`, `FeedbackToast`), `ResourceHud.tsx` (net water rate from the engine, rations floor), `MissionHeader.tsx` (demo option), `events.ts`/`engine.ts`/`actions.ts` (see doc 04).
+- Cross-team edits made for integration (smallest change, please review): `missionStore.ts` (training mode flag, feedback, view mode, `demo-fault` loader; rewind and branches are Kammoun's), `history.ts` (training actions bypass the generic validator and snapshot ids include the training log), `page.tsx` (props, `SidePanel`, `FeedbackToast`, enables training on load), `ResourceHud.tsx` (rations floor), `MissionHeader.tsx` (demo option), `events.ts`/`engine.ts`/`actions.ts` (small additive hooks, see doc 04).
 
 ## 3. Water recycler model (educational)
 

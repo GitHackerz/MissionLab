@@ -99,7 +99,7 @@ describe('resource-driven indicators', () => {
 
 describe('weather-state visualization mapping', () => {
   it('follows the canonical stormActive flag', () => {
-    expect(stormTarget(FIXTURES.normal)).toBe(0);
+    expect(stormTarget({ stormActive: false })).toBe(0);
     expect(stormTarget(FIXTURES.storm)).toBe(1);
   });
 

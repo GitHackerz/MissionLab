@@ -30,11 +30,11 @@ function describe(s: MissionSnapshot): string | null {
 }
 
 export const MissionDebrief: React.FC = () => {
-  const { missionState, history, abandonedTimelines, rewindToSnapshot } = useMissionStore();
+  const { missionState, history, branches, applyAction } = useMissionStore();
   const assessment = useMemo(() => assessLearning(missionState), [missionState]);
   const decisions = useMemo(() => history.map((s, i) => ({ s, i, text: describe(s) })).filter((d) => d.text), [history]);
   const summary = useMemo(() => getMissionSummary(history), [history]);
-  const previous = abandonedTimelines.length ? getMissionSummary(abandonedTimelines[abandonedTimelines.length - 1]) : null;
+  const previous = branches.length ? getMissionSummary(branches[branches.length - 1].snapshots) : null;
   const concluded = missionState.status === 'success' || missionState.status === 'failed';
 
   return (
@@ -83,7 +83,10 @@ export const MissionDebrief: React.FC = () => {
             {decisions.map(({ s, i, text }) => (
               <li key={s.snapshotId} className="flex items-center justify-between gap-2 rounded border border-mars-border/60 bg-black/20 px-2 py-1">
                 <span><span className="font-mono text-stone-500">H{s.hour}</span> {text}</span>
-                <button type="button" onClick={() => rewindToSnapshot(history[Math.max(0, i - 1)].snapshotId)} className="flex items-center gap-1 rounded border border-stone-600 px-1.5 py-0.5 text-[10px] text-stone-200 hover:bg-stone-800">
+                <button type="button" onClick={() => {
+                  const before = history[Math.max(0, i - 1)];
+                  applyAction({ type: 'REWIND_TO', hour: before.hour, branchFrom: missionState.branchId, snapshotId: before.snapshotId });
+                }} className="flex items-center gap-1 rounded border border-stone-600 px-1.5 py-0.5 text-[10px] text-stone-200 hover:bg-stone-800">
                   <Undo2 className="h-3 w-3" aria-hidden /> Rewind before this
                 </button>
               </li>

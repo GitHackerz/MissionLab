@@ -3,7 +3,7 @@ import {
   advanceMission,
   applyMissionAction,
   assessLearning,
-  createInitialMission,
+  createTrainingMission,
   forecastPlan,
   getGuidance,
   getRecyclerOperation,
@@ -28,7 +28,7 @@ function must(state: MissionState, action: MissionAction): MissionState {
   return r.state;
 }
 function mission(fault: RecyclerFaultKind = 'pump-seized'): MissionState {
-  const s = createInitialMission();
+  const s = createTrainingMission();
   s.training!.recycler.faultKind = fault;
   return s;
 }
@@ -278,17 +278,17 @@ describe('repair outcomes', () => {
 
 describe('mission outcomes, power and replay', () => {
   it('all loads on in the storm fails; shedding optional loads survives the power crisis', () => {
-    let reckless = createInitialMission();
+    let reckless = createTrainingMission();
     reckless = advanceMission(reckless, 72);
     expect(reckless.status).toBe('failed');
-    expect(reckless.failureReason).toMatch(/power/i);
+    expect(reckless.failure?.kind).toBe('power'); // Kammoun's engine: unserved essential demand
 
-    const f = forecastPlan(createInitialMission(), SHED);
+    const f = forecastPlan(createTrainingMission(), SHED);
     expect(f.minBatteryKwh).toBeGreaterThan(15);
   });
 
   it('forecast agrees with the real engine and flags unsafe plans', () => {
-    const s = createInitialMission();
+    const s = createTrainingMission();
     const forecast = forecastPlan(s, SHED);
     const real = advanceMission(applyMissionAction(s, { type: 'APPLY_POWER_PLAN', loads: SHED }).state, 10);
     expect(forecast.samples[10].batteryKwh).toBeCloseTo(real.resources.batteryKwh, 6);
@@ -311,8 +311,8 @@ describe('mission outcomes, power and replay', () => {
   });
 
   it('greenhouse trade-off: lit crops grow food, a dark greenhouse does not', () => {
-    const lit = advanceMission(createInitialMission(), 10);
-    const dark = advanceMission(applyMissionAction(createInitialMission(), { type: 'APPLY_POWER_PLAN', loads: { greenhouse: false } }).state!, 10);
+    const lit = advanceMission(createTrainingMission(), 10);
+    const dark = advanceMission(applyMissionAction(createTrainingMission(), { type: 'APPLY_POWER_PLAN', loads: { greenhouse: false } }).state!, 10);
     expect(lit.training!.cropGrowthHours).toBe(10);
     expect(dark.training!.cropGrowthHours).toBe(0);
     expect(lit.resources.foodRations).toBeGreaterThan(dark.resources.foodRations);
@@ -330,7 +330,7 @@ describe('mission outcomes, power and replay', () => {
   });
 
   it('guidance tracks the stage and hides hints outside Cadet mode', () => {
-    const s0 = createInitialMission();
+    const s0 = createTrainingMission();
     expect(getGuidance(s0).stage).toBe('power-plan');
     expect(getGuidance(s0).hint).toBeDefined();
     const commander = must(s0, { type: 'SET_LEARNING_MODE', mode: 'commander' });

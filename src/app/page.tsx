@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useMissionStore } from '@/state/missionStore';
 import { MissionHeader } from '@/features/mission-ui/components/MissionHeader';
@@ -8,6 +8,7 @@ import { ResourceHud } from '@/features/mission-ui/components/ResourceHud';
 import { SidePanel } from '@/features/mission-ui/components/SidePanel';
 import { FeedbackToast } from '@/features/mission-ui/components/FeedbackToast';
 import { useExploreStore } from '@/features/explore/store';
+import { MissionReview } from '@/features/debrief/components/MissionReview';
 import { EventTimeline } from '@/features/mission-ui/components/EventTimeline';
 
 const HabitatExplorer = dynamic(() => import('@/features/explore/ui/HabitatExplorer'), { ssr: false });
@@ -31,6 +32,9 @@ const HabitatScene = dynamic(
 export default function MissionControlPage() {
   const worldMode = useExploreStore((s) => s.worldMode);
   const enterHabitat = useExploreStore((s) => s.enterHabitat);
+  const enableTraining = useMissionStore((s) => s.enableTraining);
+  // The app teaches with the component-level training model; the store keeps the pure engine as its default.
+  useEffect(() => enableTraining(), [enableTraining]);
   const { missionState, selectedModuleId, selectModule, viewMode, setViewMode, applyAction, selectedComponentId, selectComponent } = useMissionStore();
 
   if (worldMode === 'habitat') return <HabitatExplorer />;
@@ -73,6 +77,7 @@ export default function MissionControlPage() {
 
       {/* 4. Event Stream & Log */}
       <EventTimeline />
+      <MissionReview />
     </main>
   );
 }

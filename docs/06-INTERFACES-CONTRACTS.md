@@ -216,6 +216,14 @@ export interface HabitatSceneProps {
 }
 ```
 
+## Implemented engine additions (2026-10-25)
+
+The user-authorized engine completion preserves all existing module IDs, status unions, action shapes and state fields. `src/simulation/types.ts` is authoritative; the excerpts above show the original baseline.
+
+Additions: optional `MissionState.config`, `power`, last-interval `flows` and structured `failure`; optional `REWIND_TO.snapshotId`; optional config `oxygenProcessWaterLitersPerKg`; summary `significantEvents`, `rootCause`, `minimumMargins` and `thresholds`. `MissionSnapshot.timestamp` now means logical event sequence. Store `branches` archives prior paths while `history` remains the active path. `advanceMissionSteps` and `recordMissionAction` expose deterministic hourly recording to integrators. Domain rewind without session history now rejects with instructions.
+
+Module power ratings remain nameplate demand when enabled; actual supply is `suppliedPowerKw`. Storm is already active in the initial state. Fixtures are now engine-derived and retain their six existing keys. These deliberate corrections are described in [04-SIMULATION-ENGINE.md](04-SIMULATION-ENGINE.md).
+
 ---
 
 ## 7. Training Contracts (additive)
