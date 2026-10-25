@@ -2,7 +2,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useMissionStore } from '@/state/missionStore';
-import { TrainingPanel } from '../components/TrainingPanel';
+import { LegacyTrainingPanel as TrainingPanel } from '../components/TrainingPanel';
 import { PowerPlanner } from '../components/PowerPlanner';
 import { MissionDebrief } from '../components/MissionDebrief';
 

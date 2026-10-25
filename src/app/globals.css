@@ -131,3 +131,17 @@ button { transition: background-color .15s, border-color .15s; }
 
 .touch-movement { display: none; }
 @media (pointer: coarse) { .touch-movement { display: grid; } }
+
+.training-entry { height: 100dvh; overflow-x: hidden; overflow-y: auto; }
+.training-entry .briefing-copy { max-width: 620px; }
+.training-entry h1.catalog-title { font-size: clamp(48px, 5vw, 72px); }
+.training-entry .mission-choice .start-mission { width: 100%; }
+
+.workbench-action { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 46px; padding: 12px 15px; border-radius: 4px; background: #dca278; color: #15242c; font-size: 14px; font-weight: 650; text-align: left; }
+.workbench-action:hover { background: #efbb95; }
+.workbench-action:disabled { opacity: .45; cursor: not-allowed; }
+.workbench-details { border-top: 1px solid #ffffff20; padding-top: 14px; font-size: 12px; color: #9db4c0; }
+.workbench-details summary { cursor: pointer; }
+.workbench input { width: 16px; height: 16px; flex-shrink: 0; }
+
+@media (max-width: 640px) { .training-entry { padding-top: 56px; } }

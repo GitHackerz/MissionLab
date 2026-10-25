@@ -53,12 +53,12 @@ export const StatusBeacon: React.FC<StatusBeaconProps> = ({ status, anim, height
     }
     if (halo.current) halo.current.scale.setScalar(base * (1.2 + 0.5 * s.pulse));
     if (material.current) {
-      color.set(visual.color);
+      color.set(visual.color).multiplyScalar(Math.min(1, s.glow * 2));
       material.current.color.lerp(color, 0.2);
     }
     if (haloMaterial.current) {
       haloMaterial.current.color.set(visual.color);
-      haloMaterial.current.opacity = 0.1 + 0.12 * s.pulse;
+      haloMaterial.current.opacity = (0.1 + 0.12 * s.pulse) * s.glow;
     }
   });
 

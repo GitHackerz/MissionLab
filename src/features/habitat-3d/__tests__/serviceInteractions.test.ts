@@ -65,6 +65,9 @@ describe('3D hotspot to engine-action mapping', () => {
     p.inactiveConfirmed = true;
     p.hatchOpen = true;
     p.tool = 'retainer-driver';
+    expect(nextHintKey(s)).toBe('component:filter-cartridge');
+    expect(actionForHotspot({ kind: 'component', id: 'filter-cartridge' }, s.training!)).toEqual({ type: 'TRAINING_STEP', step: { step: 'LOCATE_COMPONENT', slot: 'filter-cartridge' } });
+    p.completedSteps.push('locate-component');
     expect(nextHintKey(s)).toBe('retainer:filter-cartridge'); // their chosen part, though the real fault is the pump
     s.training!.mode = 'commander';
     expect(nextHintKey(s)).toBeNull();

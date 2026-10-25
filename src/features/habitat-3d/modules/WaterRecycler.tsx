@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { modulePowerFraction } from '../utils/visualState';
 import { useModuleAnimation } from '../hooks/useModuleAnimation';
 import { useMaterials } from '../components/HabitatMaterials';
 import { ModuleShell } from '../components/ModuleShell';
@@ -10,7 +11,7 @@ import { NO_BATCH } from '../components/BatchedStatic';
 import { InstancedParts, PartTransform } from '../components/InstancedParts';
 import { Hotspot } from '../components/Hotspot';
 import { hotspotKey, ServiceHotspot } from '../utils/serviceInteractions';
-import { getRecyclerOperation, NOMINAL_RECOVERY_LPH } from '@/simulation/training/recycler';
+import { getRecyclerOperation, readRecycler, NOMINAL_RECOVERY_LPH } from '@/simulation/training/recycler';
 import { REPLACEABLE_IDS, type ReplaceableId, type ToolId } from '@/simulation/training/types';
 import { HabitatModuleProps } from './types';
 
@@ -93,6 +94,7 @@ export const WaterRecycler: React.FC<HabitatModuleProps> = (props) => {
   const isSelected = (id: string) => service?.selectedComponent === id;
 
   // Flow visibility: visual cue only, from the same recovery value the engine uses.
+  const readings = service ? readRecycler(service.mission) : null;
   const flowRatio = service ? getRecyclerOperation(service.mission).recoveryLph / NOMINAL_RECOVERY_LPH : anim.current.activity;
 
   const door = useRef<THREE.Group>(null);
@@ -139,6 +141,7 @@ export const WaterRecycler: React.FC<HabitatModuleProps> = (props) => {
         g.visible = !(occ === 'empty' && slide.current[id] > 0.97);
         g.position.y = 0.46 + (occ === 'empty' ? slide.current[id] * 0.05 : 0);
       }
+      clipMaterials[id].emissiveIntensity = modulePowerFraction(props.module) * .5;
       clipMaterials[id].color.copy(released ? RELEASED : LOCKED);
       clipMaterials[id].emissive.copy(released ? RELEASED : LOCKED);
       const clip = clipMeshes.current[id];
@@ -151,8 +154,8 @@ export const WaterRecycler: React.FC<HabitatModuleProps> = (props) => {
       if (p?.held && Math.abs(heldRot.current - THREE.MathUtils.degToRad(p.held.orientation)) > Math.PI) heldRot.current = THREE.MathUtils.degToRad(p.held.orientation);
       held.current.rotation.z = heldRot.current;
     }
-    panelLed.color.set(p?.maintenanceMode ? '#f59e0b' : '#334155');
-    readyLed.color.set(p?.testReady ? '#22c55e' : '#334155');
+    panelLed.color.set(p?.maintenanceMode ? '#f59e0b' : '#334155').multiplyScalar(modulePowerFraction(props.module));
+    readyLed.color.set(p?.testReady ? '#22c55e' : '#334155').multiplyScalar(modulePowerFraction(props.module));
   });
 
   const ribs = useMemo<PartTransform[]>(() => [0.4, 0.75, 1.1, 1.45].map((y) => ({ p: [0, y, -0.55], r: [Math.PI / 2, 0, 0] })), []);
@@ -286,7 +289,7 @@ export const WaterRecycler: React.FC<HabitatModuleProps> = (props) => {
         const occupant = proc?.slots[id].occupant ?? 'original';
         return (
           <group key={id} position={[SLOT_X[id], 0, 0]} userData={NO_BATCH}>
-            <group ref={(g) => { cartridges.current[id] = g; }} position={[0, 0.46, BAY_Z]}>
+            <group name={`recycler-cartridge-${id}`} ref={(g) => { cartridges.current[id] = g; }} position={[0, 0.46, BAY_Z]}>
               <Cartridge part={id} fresh={occupant === 'spare'} />
               {occupant === 'spare' && (
                 <mesh position={[0, 0.2, 0.1]} material={m.hazard}>
@@ -353,6 +356,7 @@ export const WaterRecycler: React.FC<HabitatModuleProps> = (props) => {
         );
       })}
 
+      {readings && [-.45, .08].map((x, i) => <mesh key={x} name={`pressure-gauge-needle-${i}`} position={[x, 1.12, .615]} rotation={[0, 0, 2.4 - Math.min(1, readings[i === 0 ? 'pressure-in-kpa' : 'pressure-out-kpa'] / 400) * 4.8]} material={m.hazard}><boxGeometry args={[.012, .09, .01]} /></mesh>)}
       {/* Hatch handle hotspot */}
       {serviceActive && (
         <Hotspot

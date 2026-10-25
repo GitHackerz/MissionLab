@@ -55,7 +55,7 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
           <div className="flex flex-wrap gap-3">
             <Link href="/mission" className="btn-primary">
               <Play className="h-4 w-4" aria-hidden />
-              {signedIn ? 'Go to mission control' : `Try as guest · ${GUEST_MINUTES} min`}
+              {signedIn ? 'Start Training' : `Start Training · guest ${GUEST_MINUTES} min`}
             </Link>
             {!signedIn && (
               <Link href="/signup" className="btn-secondary">

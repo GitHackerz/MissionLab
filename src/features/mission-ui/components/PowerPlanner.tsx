@@ -6,6 +6,7 @@ import { useMissionStore } from '@/state/missionStore';
 import { forecastPlan } from '@/simulation/engine';
 import { PLAN_LOADS, currentPlan } from '@/simulation/training/power';
 import type { PlanLoadId } from '@/simulation/training/types';
+import { getRoomPower } from '@/features/explore/world/power';
 import { RED_STORM_CONFIG } from '@/simulation/config';
 
 const CATEGORY: Record<string, string> = {
@@ -83,6 +84,8 @@ export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = fa
         </p>
       </div>
 
+      <div className={schematic ? "grid items-start gap-6 lg:grid-cols-2" : "space-y-4"}>
+        <div className="space-y-4">
       {schematic && (
         <PowerSchematic
           generationKw={generation}
@@ -110,6 +113,28 @@ export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = fa
         </div>
       </div>
 
+      <section aria-label="Room consequences" className="grid gap-2 sm:grid-cols-2">
+        {([['greenhouse', 'Greenhouse', 'greenhouse'], ['research-lab', 'Mission Control', 'mission-control']] as const).map(([id, label, room]) => <div key={id} className="rounded border border-white/15 bg-[#142733] p-3"><div className="flex items-center justify-between text-sm text-stone-100"><strong>{label}</strong><span className={plan[id] ? 'text-sky-200' : 'text-amber-200'}>{plan[id] ? 'Circuit requested' : 'Main circuit off'}</span></div><p className="mt-2 text-xs text-stone-300">{id === 'greenhouse' ? plan[id] ? 'Grow lights require full allocation for food production.' : 'Grow lights off; food comes from stored rations. Plants remain alive.' : plan[id] ? 'Research and main operations displays requested.' : 'Research and main operations displays off.'}</p><p className="mt-2 text-[11px] text-stone-400">Current world: {getRoomPower(missionState, room).label}</p></div>)}
+        <p className="text-xs leading-relaxed text-stone-400 sm:col-span-2">Preview above. Apply the plan to change the actual station, then visit the affected rooms. Safety lights share the essential habitat circuit and work only while that circuit has supply.</p>
+      </section>
+      <div>
+        <div className="mb-1 flex items-center justify-between font-mono text-[11px] text-stone-400">
+          <span>Forecast (assuming no new equipment faults)</span>
+          <span>{forecast.outcome === 'failed' ? `fails at hour ${forecast.endHour}` : `reaches hour ${forecast.endHour}`}</span>
+        </div>
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full rounded border border-mars-border bg-black/40" role="img" aria-label={`Battery forecast, minimum ${forecast.minBatteryKwh} kilowatt hours`}>
+          <line x1="0" x2={W} y1={reserveY} y2={reserveY} stroke="#ef4444" strokeDasharray="4 3" strokeWidth="1" />
+          <polyline points={pts} fill="none" stroke={forecast.outcome === 'failed' ? '#ef4444' : '#10b981'} strokeWidth="2" />
+        </svg>
+        <div className="mt-1 flex justify-between font-mono text-[10px] text-stone-500">
+          <span>hour {forecast.samples[0]?.hour}</span>
+          <span className="text-red-400">dashed: {RED_STORM_CONFIG.batterySafetyThresholdKwh} kWh reserve</span>
+          <span>lowest {forecast.minBatteryKwh} kWh</span>
+        </div>
+      </div>
+
+        </div>
+        <div className="space-y-4">
       <ul className="space-y-2" aria-label="Power loads">
         {PLAN_LOADS.map((load) => {
           const mod = missionState.modules[load.id];
@@ -137,22 +162,6 @@ export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = fa
           );
         })}
       </ul>
-
-      <div>
-        <div className="mb-1 flex items-center justify-between font-mono text-[11px] text-stone-400">
-          <span>Forecast (assuming no new equipment faults)</span>
-          <span>{forecast.outcome === 'failed' ? `fails at hour ${forecast.endHour}` : `reaches hour ${forecast.endHour}`}</span>
-        </div>
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full rounded border border-mars-border bg-black/40" role="img" aria-label={`Battery forecast, minimum ${forecast.minBatteryKwh} kilowatt hours`}>
-          <line x1="0" x2={W} y1={reserveY} y2={reserveY} stroke="#ef4444" strokeDasharray="4 3" strokeWidth="1" />
-          <polyline points={pts} fill="none" stroke={forecast.outcome === 'failed' ? '#ef4444' : '#10b981'} strokeWidth="2" />
-        </svg>
-        <div className="mt-1 flex justify-between font-mono text-[10px] text-stone-500">
-          <span>hour {forecast.samples[0]?.hour}</span>
-          <span className="text-red-400">dashed: {RED_STORM_CONFIG.batterySafetyThresholdKwh} kWh reserve</span>
-          <span>lowest {forecast.minBatteryKwh} kWh</span>
-        </div>
-      </div>
 
       <ul className="space-y-1.5" aria-label="Consequences of this plan">
         {forecast.risks.map((r, i) => (
@@ -188,6 +197,8 @@ export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = fa
             Reset
           </button>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );

@@ -40,6 +40,7 @@ export function actionForHotspot(h: ServiceHotspot, training: TrainingState): Tr
   const p = training.recycler.procedure;
   switch (h.kind) {
     case 'component':
+      if (p.hatchOpen && ['pump-cartridge', 'filter-cartridge', 'flow-sensor'].includes(h.id) && !p.completedSteps.includes('locate-component')) return { type: 'TRAINING_STEP', step: { step: 'LOCATE_COMPONENT', slot: h.id as ReplaceableId } };
       return { type: 'INSPECT_COMPONENT', componentId: h.id };
     case 'hatch':
       return { type: 'TRAINING_STEP', step: { step: p.hatchOpen ? 'CLOSE_HATCH' : 'OPEN_HATCH' } };
@@ -83,6 +84,7 @@ export function nextHintKey(state: MissionState): string | null {
     if (allDone) return 'control-panel';
     return p.tool === 'hatch-key' ? 'hatch' : 'tool:hatch-key';
   }
+  if (!p.completedSteps.includes('locate-component')) return `component:${chosen}`;
   const s = p.slots[chosen];
   if (p.held) {
     if (!p.held.inspected || p.held.orientation !== 0) return 'held-part';

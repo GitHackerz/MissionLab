@@ -37,12 +37,21 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
   const enableTraining = useMissionStore((s) => s.enableTraining);
   const worldMode = useExploreStore((s) => s.worldMode);
   const enterHabitat = useExploreStore((s) => s.enterHabitat);
+  const exitHabitat = useExploreStore((s) => s.exitHabitat);
   // The guided tour targets the colony view, so it skips the briefing.
   const [started, setStarted] = useState(startTour);
+  const [entered, setEntered] = useState(false);
   const [touring, setTouring] = useState(startTour);
   const router = useRouter();
-  // The app teaches with the component-level training model; the store keeps the pure engine as its default.
-  useEffect(() => enableTraining(), [enableTraining]);
+
+  // The app teaches with the component-level training model; attempt to restore active session from storage if starting fresh.
+  useEffect(() => {
+    enableTraining();
+    const store = useMissionStore.getState();
+    if (store.missionState.hour === 0) {
+      store.restoreSession();
+    }
+  }, [enableTraining]);
 
   const endTour = useCallback(() => {
     setTouring(false);
@@ -50,12 +59,39 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
   }, [router]);
 
   // The header (and its guest-trial lock) is hidden in the briefing and explore views, so keep the account area mounted.
-  const guestGate = <div className="fixed left-1/2 top-3 z-40 -translate-x-1/2">{account}</div>;
+  const guestGate = <div className="pointer-events-none fixed inset-x-0 top-2 z-[60] flex justify-center px-3"><div className="pointer-events-auto">{account}</div></div>;
+
+  const canContinue = entered || missionState.hour > 0 || (missionState.training?.powerPlanAppliedHour !== null && missionState.training?.powerPlanAppliedHour !== undefined);
 
   if (!started) {
     return (
       <>
-        <MissionBriefing onStart={() => { enterHabitat(); setStarted(true); }} />
+        <MissionBriefing
+          canContinue={canContinue}
+          savedHour={missionState.hour}
+          savedBattery={missionState.resources.batteryKwh}
+          savedWater={missionState.resources.waterLiters}
+          onContinue={() => {
+            if (worldMode === 'habitat') {
+              enterHabitat();
+            } else {
+              exitHabitat();
+            }
+            setStarted(true);
+          }}
+          onStart={(mode, destination = 'colony') => {
+            useMissionStore.getState().resetMission();
+            useMissionStore.getState().applyAction({ type: 'SET_LEARNING_MODE', mode });
+            useMissionStore.getState().clearFeedback();
+            if (destination === 'habitat') {
+              enterHabitat();
+            } else {
+              exitHabitat();
+            }
+            setEntered(true);
+            setStarted(true);
+          }}
+        />
         {guestGate}
       </>
     );
@@ -63,7 +99,7 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
   if (worldMode === 'habitat') {
     return (
       <>
-        <HabitatExplorer />
+        <HabitatExplorer onTrainingMenu={() => setStarted(false)} />
         {guestGate}
       </>
     );

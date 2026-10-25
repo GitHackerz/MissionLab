@@ -28,3 +28,4 @@ yarn-error.log*
 # Optional isolated local verification output
 .next-*/
 .playwright-cli/
+.serena/

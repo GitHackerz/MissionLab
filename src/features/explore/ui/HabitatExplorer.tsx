@@ -1,18 +1,21 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { Gamepad2, LogOut, Play, FastForward, Zap, Droplets, Wind, ClipboardList } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Gamepad2, LogOut, Zap, Droplets, Wind, ClipboardList } from 'lucide-react';
 import { useMissionStore } from '@/state/missionStore';
 import { useExploreStore } from '../store';
 import { useGameInput } from '../input/useGameInput';
 import { ExploreScene } from '../ExploreScene';
 import { INTERACTABLES, ROOMS, TaskId } from '../world/layout';
+import { useDialogFocus } from './useDialogFocus';
 import { TaskShell } from './TaskShell';
 import { CrewTask, GreenhouseTask, MissionTask, ModuleInfoTask } from './tasks/InfoTasks';
 import { PowerTask } from './tasks/PowerTask';
 import { TrainingPanel } from '@/features/mission-ui/components/TrainingPanel';
 import { MissionDebrief } from '@/features/mission-ui/components/MissionDebrief';
 import { FeedbackToast } from '@/features/mission-ui/components/FeedbackToast';
+import { getPlayerObjective, getObjectives } from '../objectives';
+import { getRoomPower } from '../world/power';
 import { getGuidance } from '@/simulation/training/guidance';
 
 const TASK_META: Record<TaskId, { title: string; subtitle: string; layout: 'drawer' | 'panel' }> = {
@@ -33,7 +36,10 @@ const Chip: React.FC<{ icon: React.ReactNode; label: string; value: string; low?
   </span>
 );
 
-export const HabitatExplorer: React.FC = () => {
+export const HabitatExplorer: React.FC<{ onTrainingMenu?: () => void }> = ({ onTrainingMenu }) => {
+  const worldRef = useRef<HTMLDivElement>(null);
+  const pauseRef = useRef<HTMLElement>(null);
+  const debriefRef = useRef<HTMLDivElement>(null);
   const mission = useMissionStore((s) => s.missionState);
   const { applyAction, advanceTime, loadFixture, selectComponent, selectedComponentId, clearFeedback } = useMissionStore();
   const mode = useExploreStore((s) => s.mode);
@@ -44,6 +50,13 @@ export const HabitatExplorer: React.FC = () => {
   const [debug, setDebug] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    if (mode === 'exploration' && !showObjectives) worldRef.current?.focus({ preventScroll: true });
+  }, [mode, showObjectives]);
+
+  useDialogFocus(mode === 'paused', pauseRef);
+  useDialogFocus(mode === 'debrief', debriefRef);
 
   const onInteract = useCallback(() => {
     const st = useExploreStore.getState();
@@ -63,7 +76,7 @@ export const HabitatExplorer: React.FC = () => {
   }, []);
   const onObjectives = useCallback(() => useExploreStore.getState().toggleObjectives(), []);
 
-  const keys = useGameInput(mode === 'exploration' && !showObjectives, mode === 'exploration' && !showObjectives && nearbyId !== null, { onInteract, onEscape, onObjectives });
+  const keys = useGameInput(mode === 'exploration' && !showObjectives, mode === 'exploration' && !showObjectives && nearbyId !== null, { onInteract, onEscape, onObjectives, objectivesEnabled: mode === 'exploration' });
 
   // Without WebGL there is no camera to finish transitions, so complete them immediately.
   useEffect(() => {
@@ -73,11 +86,13 @@ export const HabitatExplorer: React.FC = () => {
   const nearby = INTERACTABLES.find((i) => i.id === nearbyId) ?? null;
   const guide = getGuidance(mission);
   const r = mission.resources;
-  const destination = guide.stage === 'power-plan' ? 'Power Room · east →' : ['monitor', 'recovered', 'concluded'].includes(guide.stage) ? 'Mission Control · north ↑' : 'Life Support · west ←';
+  const objective = getPlayerObjective(mission, room);
+  const objectives = getObjectives(mission);
+  const roomPower = room ? getRoomPower(mission, room) : null;
   const concluded = mission.status === 'success' || mission.status === 'failed';
 
   return (
-    <div className="fixed inset-0 z-40 bg-[#0d0c0c] text-stone-100" role="application" aria-label="Habitat exploration">
+    <div ref={worldRef} tabIndex={-1} className="fixed inset-0 z-40 bg-[#0d0c0c] text-stone-100" role="application" aria-label="Habitat exploration">
       {!unavailable && (
         <div className="absolute inset-0">
           <ExploreScene
@@ -120,7 +135,7 @@ export const HabitatExplorer: React.FC = () => {
       {/* Exploration HUD */}
       {mode !== 'task' && mode !== 'debrief' && (
         <>
-          <header className="pointer-events-none absolute left-4 right-4 top-4 flex flex-wrap items-start justify-between gap-3 sm:left-7 sm:right-7 sm:top-6">
+          <header className="pointer-events-none absolute left-4 right-4 top-12 flex flex-wrap items-start justify-between gap-3 sm:left-7 sm:right-7 lg:top-6">
             <div className="game-surface px-4 py-3">
               <div className="font-mono text-[10px] uppercase tracking-[.2em] text-orange-300">Mission 01 / Ares station</div>
               <h1 className="mt-1 text-lg font-semibold tracking-tight">The Red Storm <span className="ml-3 font-mono text-xs font-normal text-stone-400">{mission.hour.toFixed(1)} / {mission.durationHours} h</span></h1>
@@ -131,35 +146,38 @@ export const HabitatExplorer: React.FC = () => {
               <Chip icon={<Wind className="h-4 w-4 text-sky-300" aria-hidden />} label="Oxygen" value={`${r.oxygenKg.toFixed(1)} kg`} low={r.oxygenKg < 1.5} />
             </div>
           </header>
-          <aside className="pointer-events-auto absolute left-4 top-40 w-[min(20rem,calc(100vw-2rem))] sm:left-7 sm:top-28">
+          <aside className="pointer-events-auto absolute left-4 top-52 w-[min(20rem,calc(100vw-2rem))] sm:left-7 sm:top-36 lg:top-28">
             <div className="game-surface border-l-2 border-l-orange-300 px-4 py-3">
-              <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-orange-300"><span>{concluded ? 'Mission concluded' : 'Current objective'}</span><span>{guide.stage.replace(/-/g, ' ')}</span></div>
-              <p className="mt-2 text-sm leading-relaxed text-stone-100">{guide.objective}</p>
-              <div className="mt-3 border-t border-white/10 pt-2 text-xs text-sky-200">{destination}</div>
+              <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-orange-300"><span>{concluded ? 'Mission concluded' : 'Current objective'}</span><span>{mission.training?.mode ?? 'cadet'}</span></div>
+              <h2 className="mt-2 text-base font-semibold">{objective.title}</h2><p className="mt-2 hidden text-sm leading-relaxed text-stone-300 sm:block">{objective.detail}</p>
+              <div className="mt-3 border-t border-white/10 pt-2 text-xs text-sky-200">{objective.destination}</div>
+              {objective.wait && <div className="mt-3 flex items-center gap-2"><span className="text-xs text-stone-400">Wait</span><button type="button" disabled={mode !== 'exploration'} onClick={() => advanceTime(1)} className="game-button">+1h</button><button type="button" disabled={mode !== 'exploration'} onClick={() => advanceTime(6)} className="game-button">+6h</button></div>}
+              {concluded && <button type="button" className="game-button mt-3 w-full" onClick={() => useExploreStore.getState().openDebrief()}>Review Mission Autopsy</button>}
             </div>
             {mission.stormActive && <div className="mt-2 px-1 font-mono text-[10px] uppercase tracking-wider text-amber-200">▲ Dust storm / reduced solar generation</div>}
           </aside>
           <footer className="pointer-events-auto absolute inset-x-4 bottom-4 flex flex-wrap items-end justify-between gap-2 sm:inset-x-7 sm:bottom-6">
             <div className="game-surface px-3 py-2 text-xs text-stone-300">
               <div className="mb-1 flex items-center gap-2 text-sky-200"><Gamepad2 size={14} aria-hidden />{room ? ROOMS[room].label : 'Connecting corridor'}</div>
-              <span className="hidden sm:inline"><kbd className="kbd">WASD</kbd> move · <kbd className="kbd">Shift</kbd> run · </span><kbd className="kbd">E</kbd> interact
+              <div className="mb-1 text-[10px] text-stone-400">{roomPower?.label}</div><span className="hidden sm:inline"><kbd className="kbd">WASD</kbd> move · <kbd className="kbd">Shift</kbd> run · </span><kbd className="kbd">E</kbd> interact
             </div>
             <nav aria-label="Mission controls" className="flex flex-wrap gap-1.5">
-              <button type="button" disabled={concluded || mode !== 'exploration'} onClick={() => advanceTime(1)} className="game-button flex items-center gap-1"><Play size={12} aria-hidden />+1h</button>
-              <button type="button" disabled={concluded || mode !== 'exploration'} onClick={() => advanceTime(6)} className="game-button flex items-center gap-1"><FastForward size={12} aria-hidden />+6h</button>
+              <button type="button" onClick={() => useExploreStore.getState().exitHabitat()} className="game-button border-orange-400/40 text-orange-200 hover:bg-orange-950/60 font-medium">Colony Overview</button>
               <button type="button" onClick={onObjectives} className="game-button">Objectives</button>
-              <button type="button" disabled={mode !== 'exploration'} onClick={() => useExploreStore.getState().openDebrief()} className="game-button flex items-center gap-1"><ClipboardList size={13} aria-hidden />Autopsy</button>
               <button type="button" onClick={() => useExploreStore.getState().togglePause()} className="game-button">Menu <span className="hidden sm:inline">/ Esc</span></button>
             </nav>
           </footer>
           {mode === 'paused' && (
             <div className="absolute inset-0 z-20 grid place-items-center bg-[#07121b]/70 p-5 backdrop-blur-sm">
-              <section role="dialog" aria-modal="true" aria-label="Mission menu" className="game-surface w-full max-w-sm space-y-3 p-6">
+              <section ref={pauseRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Mission menu" className="game-surface max-h-[90dvh] w-full max-w-sm space-y-3 overflow-y-auto p-6">
                 <p className="font-mono text-xs uppercase tracking-widest text-orange-300">Ares station / mission menu</p>
                 <h2 className="text-2xl font-semibold">Take a breath.</h2>
                 <p className="text-sm leading-relaxed text-stone-300">Time advances only when you choose +1h, +6h or perform equipment tasks. Walking and exploring use no mission time.</p>
                 <button className="game-button block w-full" onClick={() => useExploreStore.getState().togglePause()}>Resume exploration</button>
+                <button className="game-button flex w-full items-center justify-center gap-2" onClick={() => useExploreStore.getState().openDebrief()}><ClipboardList size={14} />Mission Autopsy</button>
+                <details className="border-t border-white/10 pt-3"><summary className="cursor-pointer text-xs text-stone-300">Wait / advance mission time</summary><p className="mt-2 text-xs text-stone-400">Waiting runs the simulation with your current decisions. Check resources and equipment before continuing.</p><div className="mt-2 flex gap-2"><button className="game-button" disabled={concluded} onClick={() => { advanceTime(1); useExploreStore.getState().togglePause(); }}>Wait +1h</button><button className="game-button" disabled={concluded} onClick={() => { advanceTime(6); useExploreStore.getState().togglePause(); }}>Wait +6h</button></div></details>
                 <button className="game-button flex w-full items-center justify-center gap-2" onClick={() => useExploreStore.getState().exitHabitat()}><LogOut size={14} />Colony Overview</button>
+                {onTrainingMenu && <button type="button" className="game-button block w-full" onClick={onTrainingMenu}>Training menu · keep this attempt</button>}
                 <details onToggle={(e) => setDebug(e.currentTarget.open)} className="border-t border-white/10 pt-3">
                   <summary className="cursor-pointer text-xs text-stone-400">Development & demonstration</summary>
                   {debug && <div className="mt-3 space-y-2"><p className="text-xs text-amber-200">This replaces the current mission with the engine&apos;s fault demonstration.</p><button onClick={() => { loadFixture('demo-fault'); useExploreStore.getState().togglePause(); }} className="game-button w-full">Demo: go to fault</button></div>}
@@ -179,7 +197,7 @@ export const HabitatExplorer: React.FC = () => {
           {showObjectives && (
             <div className="absolute left-1/2 top-24 w-[min(34rem,92vw)] -translate-x-1/2 rounded-lg border border-mars-border bg-black/85 p-4 text-xs shadow-2xl backdrop-blur" role="dialog" aria-label="Mission objectives">
               <div className="mb-2 flex items-center justify-between font-mono text-xs uppercase tracking-wider text-orange-400">Objectives<button type="button" onClick={onObjectives} className="game-button">Close</button></div>
-              <p className="leading-relaxed text-stone-100">{guide.objective}</p>
+              <ol className="space-y-3">{objectives.map((item, index) => <li key={item.id} className="flex items-start gap-3 border-t border-white/10 pt-3"><span className="font-mono text-sky-200">0{index + 1}</span><div><div className="text-sm text-stone-100">{item.title}</div><p className="mt-1 text-xs text-stone-400">{item.destination} · <span className={item.status === 'completed' ? 'text-emerald-200' : item.status === 'retry' || item.status === 'failed' ? 'text-amber-200' : 'text-sky-200'}>{item.status}</span></p></div></li>)}</ol>
               {guide.hint && <p className="mt-2 text-amber-200"><span className="font-semibold">Hint: </span>{guide.hint}</p>}
               {guide.concept && <p className="mt-2 text-sky-200"><span className="font-semibold">Science: </span>{guide.concept}</p>}
               <p className="mt-2 text-stone-400">Keep four crew safe for 72 hours. Explore the rooms: Mission Control (north), Power Room (east), Life Support (west), Greenhouse (south).</p>
@@ -190,7 +208,7 @@ export const HabitatExplorer: React.FC = () => {
 
       {/* Focused task surface */}
       {mode === 'task' && taskId && (
-        <TaskShell title={TASK_META[taskId].title} subtitle={TASK_META[taskId].subtitle} layout={TASK_META[taskId].layout} onClose={() => useExploreStore.getState().endTask()}>
+        <TaskShell showWorkflow={taskId !== 'water-recycler'} title={TASK_META[taskId].title} subtitle={TASK_META[taskId].subtitle} layout={TASK_META[taskId].layout} onClose={() => useExploreStore.getState().endTask()}>
           {taskId === 'water-recycler' && <TrainingPanel embedded />}
           {taskId === 'power-console' && <PowerTask />}
           {taskId === 'mission-console' && <MissionTask onOpenDebrief={() => { useExploreStore.getState().openDebrief(); }} />}
@@ -201,7 +219,7 @@ export const HabitatExplorer: React.FC = () => {
       )}
 
       {mode === 'debrief' && (
-        <div role="dialog" aria-modal="true" aria-label="Mission debrief" className="absolute inset-x-3 inset-y-3 z-30 overflow-y-auto rounded-lg border border-mars-border bg-[#150a08]/95 shadow-2xl backdrop-blur-md sm:inset-x-[12%]">
+        <div ref={debriefRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Mission debrief" className="absolute inset-x-3 inset-y-3 z-30 overflow-y-auto rounded-lg border border-mars-border bg-[#150a08]/95 shadow-2xl backdrop-blur-md sm:inset-x-[12%]">
           <div className="sticky top-0 z-10 flex justify-end border-b border-mars-border bg-black/60 px-3 py-2">
             <button type="button" onClick={() => useExploreStore.getState().closeDebrief()} className="rounded border border-stone-600 bg-stone-900 px-2.5 py-1 text-xs hover:bg-stone-800">Back <kbd className="ml-1 rounded bg-black/60 px-1 font-mono text-[10px]">Esc</kbd></button>
           </div>

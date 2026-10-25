@@ -10,6 +10,7 @@ import { SceneErrorBoundary } from '@/features/habitat-3d/components/SceneFallba
 import { useReducedMotion } from '@/features/habitat-3d/hooks/useReducedMotion';
 import { actionForHotspot, nextHintKey, ServiceHotspot } from '@/features/habitat-3d/utils/serviceInteractions';
 import { isWebGLAvailable } from '@/features/habitat-3d/utils/webgl';
+import { InteriorAtmosphere } from './world/InteriorAtmosphere';
 import { InteriorWorld } from './world/InteriorWorld';
 import { Player, PlayerRef } from './character/Player';
 import { ExploreCamera } from './ExploreCamera';
@@ -63,6 +64,7 @@ export const ExploreScene: React.FC<Props> = ({ mission, keys, selectedComponent
       if (!t) return;
       const a = actionForHotspot(h, t);
       if (a.type === 'INSPECT_COMPONENT') onSelectComponent(a.componentId);
+      if (a.type === 'TRAINING_STEP' && a.step.step === 'LOCATE_COMPONENT') onSelectComponent(a.step.slot);
       onTrainingAction(a);
     },
     [mission.training, onSelectComponent, onTrainingAction],
@@ -80,11 +82,12 @@ export const ExploreScene: React.FC<Props> = ({ mission, keys, selectedComponent
           gl.toneMappingExposure = 1.0;
           scene.background = new THREE.Color('#827367');
           scene.fog = new THREE.Fog('#827367', 28, 85);
-          if (process.env.NODE_ENV !== 'production') (window as unknown as Record<string, unknown>).__exploreDebug = { gl, scene, camera, player };
+          if (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_MISSIONLAB_SCENE_DEBUG === '1') (window as unknown as Record<string, unknown>).__exploreDebug = { gl, scene, camera, player, keys };
           onReady?.();
         }}
       >
         <HabitatMaterialsProvider stormRef={stormRef}>
+          <InteriorAtmosphere storm={mission.stormActive} stormRef={stormRef} reducedMotion={reducedMotion} />
           <InteriorWorld
             mission={mission}
             showMarkers={mode === 'exploration'}

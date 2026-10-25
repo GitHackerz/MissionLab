@@ -61,6 +61,8 @@ describe('game input', () => {
     render(<Harness move interact handlers={handlers} />);
     fireEvent.keyDown(screen.getByTestId('field'), { code: 'KeyE' });
     expect(handlers.onInteract).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByTestId('field'), { code: 'Escape' });
+    expect(handlers.onEscape).toHaveBeenCalledTimes(1);
   });
 
   it('routes Escape and Tab, and removes its listeners on unmount', () => {
@@ -97,7 +99,7 @@ describe('habitat explorer without WebGL', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Water Recycler' });
     expect(dialog).toBeTruthy();
     expect(useExploreStore.getState().mode).toBe('task');
-    expect(screen.getByText(/Water recovery has dropped below the expected range/)).toBeTruthy();
+    expect(screen.getByText(/Observed symptom: recovery is below its expected range/)).toBeTruthy();
   });
 
   it('runs a real diagnostic through the task and keeps progress after closing and reopening', async () => {

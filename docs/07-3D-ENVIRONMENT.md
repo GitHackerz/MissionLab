@@ -121,3 +121,7 @@ When `missionState.stormActive` becomes `true`:
 ## 9. Interior Habitat
 
 The playable interior (rooms, collision, camera, interaction prompts, task cameras) is specified in [17-PLAYABLE-HABITAT.md](17-PLAYABLE-HABITAT.md). The detailed water recycler model of section 8 is reused unchanged inside the Life Support room.
+
+## Living interior circuits
+
+The playable interior now binds room fixtures, screens and equipment activity to allocated engine loads. `world/power.ts` documents the mapping; `RoomLighting` supplies main and shared-circuit safety fixtures, while `InteriorAtmosphere` maps the actual storm state to outside haze and natural fill. Plants use recorded lit hours rather than instant power-driven browning. Details and limitations are in [19-LIVING-HABITAT-UX.md](19-LIVING-HABITAT-UX.md).

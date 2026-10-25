@@ -1,7 +1,7 @@
 # 17 — Playable Habitat: Astronaut Exploration and Focused Tasks (Authoritative)
 
 **Status:** Implemented (vertical slice). *Not implemented* items are listed in §10.
-Code: `src/features/explore/**`. Entry: the button **Explore the habitat as an astronaut** on the colony view. The colony overview remains the default screen and is unchanged.
+Code: `src/features/explore/**`. Entry: **Start Training → The Red Storm → View briefing → Begin Mission** under `/mission`. The playable habitat is primary; the exterior remains available through **Menu → Colony Overview**. See [19-LIVING-HABITAT-UX.md](19-LIVING-HABITAT-UX.md) for current lighting, objectives and guided repair behaviour.
 
 ## 1. Experience
 
@@ -31,7 +31,7 @@ task content -> existing mission store / engine actions (applyAction, forecastPl
                      |
               [ Greenhouse ]  x -4..4, z 4..9
 ```
-Doorway thresholds glow in the destination room's accent colour (wayfinding by light); each room has one softly tinted point light (no shadows). Walls and props collide; decorative wall items do not. All layout data (rooms, walls, props, interactables, spawn) is plain data in `world/layout.ts` and is covered by tests (spawn is free, doorways are walkable, interactables stand on free ground, the astronaut cannot leave).
+Doorway thresholds glow in the destination room's accent colour (wayfinding by light); main fixtures, console emission and amber safety lighting follow allocated room circuits (no shadows). Safety lighting requires the supplied essential habitat circuit; no independent reserve battery is modelled. Walls and props collide; decorative wall items do not. All layout data (rooms, walls, props, interactables, spawn) is plain data in `world/layout.ts` and is covered by tests (spawn is free, doorways are walkable, interactables stand on free ground, the astronaut cannot leave).
 
 ## 4. Interaction framework
 
@@ -66,9 +66,9 @@ The astronaut is the MissionLab mascot (chibi helmet with black visor and glowin
 
 - Accessibility: visible controls guide; the prompt is an `aria-live` button, so mouse users can interact; every task surface is a labelled dialog with a Back button; status uses shapes and text as well as colour; reduced motion disables limb swing, bobbing and camera easing; without WebGL the habitat becomes a button list that opens the same tasks.
 - Performance: about 45 draw calls and 14k triangles in the interior (dev, 1400x900); no React re-render per frame (transform and animation in refs; only target and room changes reach the store).
-- Mobile and touch are out of scope for this phase (no virtual joystick); desktop keyboard only.
+- Coarse-pointer devices have directional on-screen controls and contextual equipment buttons. Mobile focused tasks use a lower drawer; keyboard movement remains available on desktop.
 - Tests: `src/features/explore/__tests__/` (collision, layout, targeting, lifecycle, input, task UI without WebGL). Browser checks with Playwright covered movement and collision, the prompt, E opening the correct task, movement lock during tasks, Esc restoring control, the complete recycler repair through 3D clicks, the power board, and the mission console. There is no automated WebGL test in CI.
 
 ## 10. Not implemented
 
-Touch/gamepad controls; a licensed rigged character with baked clips; footsteps or other audio; doors that animate; camera rotation by the player; more rooms or tasks (e.g. research lab); interior simulation effects for the dust storm (dust only affects the colony view); tasks for filter and sensor swaps in this mode have not been exercised in a browser (same hotspots as the colony service view).
+Gamepad controls; a licensed rigged character with baked clips; footsteps or other audio; doors that animate; camera rotation by the player; more rooms or tasks (e.g. research lab); an irrigation allocation model or a separate emergency battery; tasks for filter and sensor swaps in this mode have not been exercised in a browser (same hotspots as the colony service view).

@@ -24,6 +24,49 @@ import { RED_STORM_CONFIG } from '@/simulation/config';
 /** Dev-only fixture switcher in the mission header (hidden in production builds). */
 export const FIXTURES_ENABLED = process.env.NODE_ENV !== 'production';
 
+const SESSION_STORAGE_KEY = 'missionlab_active_session_v1';
+
+export function saveSessionToStorage(state: {
+  missionState: MissionState;
+  history: MissionSnapshot[];
+  branches: MissionBranch[];
+  trainingMode: boolean;
+}) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage quota or disabled storage
+  }
+}
+
+export function loadSessionFromStorage(): {
+  missionState: MissionState;
+  history: MissionSnapshot[];
+  branches: MissionBranch[];
+  trainingMode: boolean;
+} | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.missionState && Array.isArray(parsed.history)) {
+      return parsed;
+    }
+  } catch {
+    // Ignore invalid JSON
+  }
+  return null;
+}
+
+export function clearSessionFromStorage() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {}
+}
+
 export interface MissionStore {
   // State
   missionState: MissionState;
@@ -47,6 +90,7 @@ export interface MissionStore {
   setAutoRunning: (running: boolean) => void;
   /** Starts the training mission (used by the mission-ui briefing). */
   startMission: () => void;
+  restoreSession: () => boolean;
   selectComponent: (id: RecyclerComponentId | null) => void;
   setViewMode: (mode: 'colony' | 'service') => void;
   clearFeedback: () => void;
@@ -76,6 +120,19 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
 
   setAutoRunning: (running) => set({ autoRunning: running }),
   startMission: () => get().enableTraining(),
+  restoreSession: () => {
+    const saved = loadSessionFromStorage();
+    if (!saved || !saved.missionState) return false;
+    set({
+      missionState: saved.missionState,
+      history: saved.history,
+      branches: saved.branches || [],
+      trainingMode: saved.trainingMode ?? true,
+      availableActions: getAvailableActions(saved.missionState),
+      activeFixtureKey: 'saved',
+    });
+    return true;
+  },
   enableTraining: () => {
     if (get().trainingMode) return;
     const state = createTrainingMission(RED_STORM_CONFIG);
@@ -101,6 +158,7 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
 
     // Special case: Session Reset
     if (action.type === 'RESET_MISSION') {
+      clearSessionFromStorage();
       const resetState = (get().trainingMode ? createTrainingMission : createInitialMission)(RED_STORM_CONFIG);
       const snap = createSnapshot(resetState, action);
       set({
@@ -132,8 +190,15 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
         snapshots: structuredClone(history), finalStatus: missionState.status };
       const branch = forkMission(history, targetSnap.snapshotId, `branch-${branches.length + 1}`);
       const restoredState = structuredClone(branch.snapshots.at(-1)!.state);
+      const nextBranches = [...branches, original];
+      saveSessionToStorage({
+        missionState: restoredState,
+        history: branch.snapshots,
+        branches: nextBranches,
+        trainingMode: get().trainingMode,
+      });
       set({ missionState: restoredState, history: branch.snapshots,
-        branches: [...branches, original], availableActions: getAvailableActions(restoredState),
+        branches: nextBranches, availableActions: getAvailableActions(restoredState),
         lastFeedback: null, viewMode: 'colony' });
       return { ok: true, state: restoredState };
     }
@@ -142,6 +207,12 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
     const transition = recordMissionAction(missionState, history, action);
     const result = transition.result;
     if (result.ok) {
+      saveSessionToStorage({
+        missionState: result.state,
+        history: transition.history,
+        branches: get().branches,
+        trainingMode: get().trainingMode,
+      });
       set({ missionState: result.state,
         availableActions: getAvailableActions(result.state), history: transition.history,
         ...(result.feedback || get().lastFeedback ? { lastFeedback: result.feedback ?? null } : {}) });

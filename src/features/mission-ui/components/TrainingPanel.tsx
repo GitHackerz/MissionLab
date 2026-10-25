@@ -1,5 +1,6 @@
 'use client';
 
+import { RecyclerWorkbench } from '@/features/explore/ui/tasks/RecyclerWorkbench';
 import React, { useMemo, useState } from 'react';
 import { CheckCircle2, Circle, FlaskConical, Lightbulb, Microscope, Wrench, XCircle, Box } from 'lucide-react';
 import { useMissionStore } from '@/state/missionStore';
@@ -77,7 +78,7 @@ const STEPS: StepRow[] = [
   { id: 'startup-test', label: '16. Run the startup test', detail: 'Then compare readings with expected ranges.' },
 ];
 
-export const TrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
+export const LegacyTrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { missionState, applyAction, viewMode, setViewMode, selectModule, selectedComponentId, selectComponent } = useMissionStore();
   const t = missionState.training;
   const [slot, setSlot] = useState<ReplaceableId | null>(null);
@@ -338,3 +339,16 @@ export const TrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded = fal
   );
 };
 
+
+export const TrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
+  const [advanced, setAdvanced] = useState(false);
+  const viewMode = useMissionStore(s => s.viewMode);
+  const setView = useMissionStore(s => s.setViewMode);
+  const select = useMissionStore(s => s.selectModule);
+  if (embedded) return <RecyclerWorkbench />;
+  return <div>
+    <div className="p-4 pb-0"><button type="button" className="game-button w-full" onClick={() => { select('water-recycler'); setView(viewMode === 'service' ? 'colony' : 'service'); }}>{viewMode === 'service' ? 'Return to Colony Overview' : 'Open equipment focus'}</button></div>
+    <RecyclerWorkbench />
+    <details className="m-4 border-t border-white/10 pt-3" onToggle={event => setAdvanced(event.currentTarget.open)}><summary className="cursor-pointer text-xs text-stone-400">Advanced training controls · development</summary>{advanced && <LegacyTrainingPanel />}</details>
+  </div>;
+};

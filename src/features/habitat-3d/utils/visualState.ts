@@ -107,3 +107,10 @@ export function mixStorm(key: StormNumericKey, intensity: number): number {
   const t = clamp01(intensity);
   return CLEAR_SKY[key] + (STORM_SKY[key] - CLEAR_SKY[key]) * t;
 }
+
+/** Actual allocated supply, independent of a fault/status colour. */
+export function modulePowerFraction(module: Pick<ModuleState, 'enabled' | 'powerDemandKw' | 'suppliedPowerKw' | 'status'>): number {
+  if (!module.enabled) return 0;
+  if (module.powerDemandKw <= 0) return module.status === 'offline' ? 0 : 1;
+  return clamp01(module.suppliedPowerKw / module.powerDemandKw);
+}

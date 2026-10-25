@@ -83,6 +83,7 @@ export function applyMissionAction(state: MissionState, action: MissionAction): 
       if (state.status !== 'running') return { ok: false, reason: 'Mission has concluded. Use Rewind or Reset to continue.', state };
       const planned = applyPlanToState(state, action.loads);
       allocatePower(planned, false);
+      syncRecyclerModule(planned);
       if (planned.training) planned.training.log.push({ hour: planned.hour, minute: planned.training.minuteOfHour, action: 'APPLY_POWER_PLAN', ok: true, detail: JSON.stringify(action.loads) });
       return { ok: true, state: planned, message: 'Power plan applied.',
         feedback: { kind: 'success', title: 'Power plan applied', body: 'Loads were switched. Watch the battery trend to confirm the plan works.' } };

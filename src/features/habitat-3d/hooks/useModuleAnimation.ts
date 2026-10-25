@@ -2,7 +2,7 @@ import { MutableRefObject, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { ModuleState } from '@/simulation/types';
-import { resolveStatusVisual } from '../utils/visualState';
+import { modulePowerFraction, resolveStatusVisual } from '../utils/visualState';
 
 /** Transient render values for one module. Never read back by the simulation. */
 export interface ModuleAnimation {
@@ -33,11 +33,15 @@ const flicker = (t: number) => {
 };
 
 export function useModuleAnimation(module: ModuleState, reducedMotion: boolean): ModuleAnimationResult {
-  const visual = resolveStatusVisual(module.status);
+  const status = resolveStatusVisual(module.status);
+  const power = modulePowerFraction(module);
+  const visual = { ...status, glow: status.glow * power, activity: power >= .999 && module.status !== 'repairing' ? status.activity : 0 };
+  const powerRef = useRef(power);
   const visualRef = useRef(visual);
   const reducedRef = useRef(reducedMotion);
   useEffect(() => {
     visualRef.current = visual;
+    powerRef.current = power;
     reducedRef.current = reducedMotion;
   });
 
@@ -100,6 +104,7 @@ export function useModuleAnimation(module: ModuleState, reducedMotion: boolean):
     interior.emissiveIntensity = s.glow * 1.3 * lightFlicker;
 
     target.set(v.color);
+    target.multiplyScalar(powerRef.current);
     statusLed.color.lerp(target, k);
   });
 

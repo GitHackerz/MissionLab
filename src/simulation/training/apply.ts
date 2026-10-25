@@ -197,7 +197,8 @@ function checkStep(state: MissionState, step: TrainingStepAction): Check | Fail 
       return { valid: true };
     }
     case 'RESTORE_TEST_READY':
-      if (!p.maintenanceMode) return fail('Not in maintenance mode', 'The unit is not stopped for service.');
+      if (!p.maintenanceMode && p.phase !== 'failed-verification') return fail('Not in maintenance mode', 'The unit is not stopped for service.');
+      if (p.phase === 'failed-verification' && (p.held || Object.values(p.slots).some(slot => slot.occupant === 'empty' || slot.retainers !== 'locked'))) return fail('Unit is not assembled', 'Fill and secure every bay before requesting another verification.');
       if (p.hatchOpen) return fail('Hatch is open', 'Close the service hatch before restoring the unit.');
       return { valid: true };
     case 'RUN_STARTUP_TEST':
@@ -253,6 +254,9 @@ export function syncRecyclerModule(state: MissionState): void {
     return;
   }
   delete m.repairHoursRemaining;
+  if (op.reason === 'blackout') { m.status = m.suppliedPowerKw > 0 ? 'warning' : 'offline'; return; }
+  if (t.recycler.procedure.testReady) { m.status = 'repairing'; return; }
+  if (t.recycler.procedure.phase === 'failed-verification' && !op.activeFault) { m.status = 'warning'; return; }
   if (op.activeFault === 'pump-seized') { m.status = 'degraded'; m.health = 0.35; }
   else if (op.activeFault === 'filter-clogged') { m.status = 'degraded'; m.health = 0.55; }
   else if (op.activeFault === 'sensor-drift') { m.status = 'degraded'; m.health = 0.8; }

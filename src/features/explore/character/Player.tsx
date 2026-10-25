@@ -75,7 +75,7 @@ export const Player: React.FC<PlayerProps> = ({ keys, state, reducedMotion }) =>
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       const step = Math.sign(diff) * Math.min(Math.abs(diff), 12 * dt);
       s.yaw += step;
-      turn = step / dt;
+      turn = dt > 0 ? step / dt : 0;
     }
     pose.current.speed = Math.min(1, speed / (sprint ? RUN : WALK));
     pose.current.turn = turn;

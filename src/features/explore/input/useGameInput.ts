@@ -12,6 +12,7 @@ export interface GameInputHandlers {
   onInteract: () => void;
   onEscape: () => void;
   onObjectives: () => void;
+  objectivesEnabled?: boolean;
 }
 
 const MOVE: Record<string, keyof GameKeys> = {
@@ -51,13 +52,15 @@ export function useGameInput(
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (isTypingTarget(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.code === 'Escape') {
         h.current.onEscape();
+        e.preventDefault();
         return;
       }
+      if (isTypingTarget(e.target)) return;
       if (e.code === 'Tab') {
-        if (flags.current.movementEnabled) {
+        if ((flags.current.movementEnabled || h.current.objectivesEnabled) && !(e.target instanceof HTMLElement && e.target.closest('button, a, summary'))) {
           e.preventDefault();
           if (!e.repeat) h.current.onObjectives();
         }

@@ -96,7 +96,7 @@ export const useExploreStore = create<ExploreState>((set, get) => ({
   },
 
   openDebrief: () => {
-    if (get().mode === 'exploration' || get().mode === 'task') set({ mode: 'debrief', activeTaskId: null, activeInteractableId: null, transitionDirection: null, showObjectives: false });
+    if (get().mode === 'exploration' || get().mode === 'task' || get().mode === 'paused') set({ mode: 'debrief', activeTaskId: null, activeInteractableId: null, transitionDirection: null, showObjectives: false });
   },
   closeDebrief: () => {
     if (get().mode === 'debrief') set({ mode: 'exploration' });

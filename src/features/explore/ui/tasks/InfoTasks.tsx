@@ -5,6 +5,9 @@ import { useMissionStore } from '@/state/missionStore';
 import { forecastPlan } from '@/simulation/engine';
 import { currentPlan } from '@/simulation/training/power';
 import { getGuidance } from '@/simulation/training/guidance';
+import { modulePowerFraction } from '@/features/habitat-3d/utils/visualState';
+import { getRoomPower } from '../../world/power';
+import { getObjectives } from '../../objectives';
 import { RED_STORM_CONFIG } from '@/simulation/config';
 import { STATUS_VISUALS } from '@/features/habitat-3d/constants/statusVisuals';
 import type { ModuleId } from '@/simulation/types';
@@ -72,10 +75,11 @@ export const GreenhouseTask: React.FC = () => {
         Plants turn light, water and carbon dioxide into food. Under the grow lights the crops need {gh.powerDemandKw} kW, as much power as the whole water recycler plus heating. Compare what each choice does by the end of the mission (computed by the real simulation).
       </p>
       <div className="grid grid-cols-3 gap-2 font-mono text-[11px]">
-        <div className="rounded border border-mars-border bg-black/30 p-2"><div className="text-stone-500">Grow lights</div><div className="text-sm text-stone-100">{gh.enabled ? `${STATUS_VISUALS[gh.status].glyph} on` : '■ off'}</div></div>
+        <div className="rounded border border-mars-border bg-black/30 p-2"><div className="text-stone-500">Grow lights</div><div className="text-sm text-stone-100">{modulePowerFraction(gh) >= .999 ? '● supplied' : modulePowerFraction(gh) > 0 ? '▲ limited' : '■ off'}</div></div>
         <div className="rounded border border-mars-border bg-black/30 p-2"><div className="text-stone-500">Hours lit</div><div className="text-sm text-stone-100">{m.training?.cropGrowthHours ?? 0}</div></div>
         <div className="rounded border border-mars-border bg-black/30 p-2"><div className="text-stone-500">Food rations</div><div className="text-sm text-stone-100">{Math.floor(m.resources.foodRations)}</div></div>
       </div>
+      <p className="rounded border border-green-200/20 bg-green-950/20 p-3 text-sm text-green-100">{getRoomPower(m, 'greenhouse').label}. Crop growth follows recorded lit hours, so opening a breaker does not instantly kill the plants.</p>
       <table className="w-full font-mono text-[11px]">
         <thead><tr className="text-left text-stone-500"><th className="font-normal">If the lights are...</th><th className="font-normal">Lowest battery</th><th className="font-normal">Food at end</th><th className="font-normal">Outcome</th></tr></thead>
         <tbody className="text-stone-200">
@@ -84,6 +88,7 @@ export const GreenhouseTask: React.FC = () => {
         </tbody>
       </table>
       <p className="leading-snug text-stone-400">Switching the lights off saves power now, but crops stop growing. Food then comes only from stored rations. Which matters more depends on how much battery you have left.</p>
+      <details className="text-xs text-stone-400"><summary className="cursor-pointer">What this crop model represents</summary><p className="mt-2 leading-relaxed">Lit, fully powered hours contribute food; crew keep eating stored rations. The current mission does not allocate irrigation water or model individual plant health. The irrigation pipes are physical context, not a separate simulated crop-water system.</p></details>
       <button type="button" disabled={concluded} onClick={() => applyAction({ type: 'APPLY_POWER_PLAN', loads: { greenhouse: !gh.enabled } })} className="w-full rounded bg-orange-600 px-3 py-2 font-semibold text-white hover:bg-orange-500 disabled:bg-stone-800 disabled:text-stone-500">
         {gh.enabled ? 'Switch grow lights off' : 'Switch grow lights on'}
       </button>
@@ -108,7 +113,7 @@ export const MissionTask: React.FC<{ onOpenDebrief: () => void }> = ({ onOpenDeb
   return (
     <div className="grid gap-3 p-4 text-xs md:grid-cols-2">
       <Card title="Current objective">
-        <p className="leading-relaxed text-stone-100">{guide.objective}</p>
+        <ol className="space-y-2">{getObjectives(m).map(item => <li key={item.id} className="border-b border-white/10 pb-2"><span className="text-stone-100">{item.title}</span><span className="ml-2 text-sky-200">{item.status}</span><p className="mt-1 text-xs text-stone-400">{item.destination}</p></li>)}</ol>
         {guide.hint && <p className="mt-2 text-amber-200"><span className="font-semibold">Hint: </span>{guide.hint}</p>}
         {guide.concept && <p className="mt-2 text-sky-200"><span className="font-semibold">Science: </span>{guide.concept}</p>}
       </Card>
@@ -149,12 +154,12 @@ export const ModuleInfoTask: React.FC<{ moduleId: ModuleId }> = ({ moduleId }) =
       <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
         <div className="rounded border border-mars-border bg-black/30 p-2"><div className="text-stone-500">Status</div><div className="text-sm" style={{ color: v.color }}>{v.glyph} {v.label}</div></div>
         <div className="rounded border border-mars-border bg-black/30 p-2"><div className="text-stone-500">Health</div><div className="text-sm text-stone-100">{Math.round(mod.health * 100)}%</div></div>
-        <div className="rounded border border-mars-border bg-black/30 p-2"><div className="text-stone-500">Power use</div><div className="text-sm text-stone-100">{mod.powerDemandKw} kW</div></div>
+        <div className="rounded border border-mars-border bg-black/30 p-2"><div className="text-stone-500">Power use</div><div className="text-sm text-stone-100">{mod.suppliedPowerKw.toFixed(1)} / {mod.powerDemandKw} kW allocated</div></div>
         <div className="rounded border border-mars-border bg-black/30 p-2"><div className="text-stone-500">Oxygen reserve</div><div className="text-sm text-stone-100">{m.resources.oxygenKg.toFixed(2)} kg</div></div>
       </div>
       {moduleId === 'life-support' && (
         <p className="leading-snug text-stone-400">
-          The crew use {RED_STORM_CONFIG.crewOxygenUseKgPerHour} kg of oxygen per hour. While this unit has power it makes {RED_STORM_CONFIG.normalOxygenGenKgPerHour} kg per hour, a small surplus. It is a critical system: if the battery runs out, the unit stops and the reserve is all that is left.
+          The crew use {RED_STORM_CONFIG.crewOxygenUseKgPerHour} kg of oxygen per hour. At full allocation this unit can make up to {RED_STORM_CONFIG.normalOxygenGenKgPerHour} kg per hour, a small surplus. It is a critical system: if allocated supply is insufficient, production stops and the reserve buffers crew use. A drained battery alone does not imply an outage while solar supply remains available.
         </p>
       )}
     </div>

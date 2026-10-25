@@ -10,7 +10,7 @@ import { StatusBeacon } from '@/features/habitat-3d/components/StatusBeacon';
 import { WaterRecycler } from '@/features/habitat-3d/modules/WaterRecycler';
 import { useModuleAnimation } from '@/features/habitat-3d/hooks/useModuleAnimation';
 import { MODULE_LAYOUT } from '@/features/habitat-3d/constants/layout';
-import { batteryChargeFraction } from '@/features/habitat-3d/utils/visualState';
+import { batteryChargeFraction, modulePowerFraction } from '@/features/habitat-3d/utils/visualState';
 import { litSegments } from '@/features/habitat-3d/modules/BatteryBank';
 import type { HabitatModuleProps } from '@/features/habitat-3d/modules/types';
 import type { ServiceHotspot } from '@/features/habitat-3d/utils/serviceInteractions';
@@ -27,11 +27,12 @@ import {
   WALL_H,
   WorldInteractable,
 } from './layout';
+import { AirUnit } from './AirUnit';
+import { RoomLighting } from './RoomLighting';
+import { getRoomPower } from './power';
 import { HabitatDressing } from './HabitatDressing';
 import { mulberry32 } from '@/features/habitat-3d/utils/terrain';
 
-/** Soften an accent colour toward white so rooms read as tinted, not washed out. */
-const tint = (hex: string) => new THREE.Color(hex).lerp(new THREE.Color('#ffffff'), 0.55);
 const w = (b: { minX: number; maxX: number }) => b.maxX - b.minX;
 const d = (b: { minZ: number; maxZ: number }) => b.maxZ - b.minZ;
 const cx = (b: { minX: number; maxX: number }) => (b.minX + b.maxX) / 2;
@@ -63,6 +64,8 @@ function useInteriorMaterials() {
       led: new THREE.MeshBasicMaterial({ toneMapped: false }),
     };
   }, []);
+  for (const [id] of ROOM_LIST) mats.screens[id].name = `screen-${id}`;
+  mats.growLight.name = 'greenhouse-grow-light';
   useEffect(
     () => () => {
       const all: THREE.Material[] = [
@@ -266,24 +269,24 @@ const BatteryRackLeds: React.FC<{ mission: MissionState; mats: InteriorMats }> =
 };
 
 const GreenhouseDressing: React.FC<{ mission: MissionState; mats: InteriorMats; reducedMotion: boolean }> = ({ mission, mats, reducedMotion }) => {
-  const { anim } = useModuleAnimation(mission.modules.greenhouse, reducedMotion);
+  const cropHours = mission.training?.cropGrowthHours ?? 0;
+  const growth = .8 + .2 * Math.min(1, cropHours / mission.durationHours);
   const plants = useMemo(() => {
     const rand = mulberry32(7);
     const transforms: PartTransform[] = [];
     for (const bed of PROPS.filter((p) => p.id.startsWith('gh-bed'))) {
       for (let i = 0; i < 16; i++) {
-        const s = 0.7 + rand() * 0.7;
+        const s = (0.7 + rand() * 0.7) * growth;
         transforms.push({ p: [bed.x - bed.w / 2 + 0.3 + i * ((bed.w - 0.6) / 15), 0.5 + 0.12 * s, bed.z + (rand() - 0.5) * 0.4], s: [s, s * 1.2, s], r: [0, rand() * 6, 0] });
       }
     }
     return transforms;
-  }, []);
-  const dry = useMemo(() => new THREE.Color('#5a4a30'), []);
-  const lush = useMemo(() => new THREE.Color('#58a53a'), []);
-  useFrame(() => {
-    const g = anim.current.glow;
-    mats.growLight.emissiveIntensity = g * 1.3;
-    mats.plant.color.lerpColors(dry, lush, 0.25 + 0.75 * g);
+  }, [growth]);
+  useFrame((_, delta) => {
+    const power = modulePowerFraction(mission.modules.greenhouse);
+    const k = reducedMotion ? 1 : 1 - Math.exp(-Math.min(delta, .1) * 8);
+    mats.growLight.emissiveIntensity += (power * 1.3 - mats.growLight.emissiveIntensity) * k;
+    // Plants do not turn brown when a switch is opened. Size follows recorded lit hours.
   });
   return (
     <group>
@@ -352,6 +355,13 @@ export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedI
       material.needsUpdate = true;
     }
   }, [mats, serviceActive]);
+  useFrame((_, delta) => {
+    const k = reducedMotion ? 1 : 1 - Math.exp(-Math.min(delta, .1) * 8);
+    for (const [id] of ROOM_LIST) {
+      const target = getRoomPower(mission, id).main;
+      mats.screens[id].emissiveIntensity += (target * .9 - mats.screens[id].emissiveIntensity) * k;
+    }
+  });
   const layout = MODULE_LAYOUT['water-recycler'].position;
   const recyclerProps: HabitatModuleProps = {
     module: mission.modules['water-recycler'],
@@ -369,6 +379,7 @@ export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedI
     <group>
       <HabitatDressing />
       <StaticShell mats={mats} />
+      <AirUnit module={mission.modules['life-support']} reducedMotion={reducedMotion} />
       <BatteryRackLeds mission={mission} mats={mats} />
       <GreenhouseDressing mission={mission} mats={mats} reducedMotion={reducedMotion} />
       {/* The existing detailed water-recycler model, reused as-is (same hotspots, same training mechanics). */}
@@ -380,12 +391,7 @@ export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedI
       {showMarkers && INTERACTABLES.map((i) => (
         <Marker key={i.id} item={i} mission={mission} targeted={targetedId === i.id} reducedMotion={reducedMotion} />
       ))}
-      {/* Room lighting: one soft point light per room, in its accent colour, no shadows */}
-      {ROOM_LIST.map(([id, r]) => (
-        <pointLight key={id} position={[cx(r), 3.4, cz(r)]} color={tint(r.accent)} intensity={id === 'hub' ? 14 : 24} distance={11} decay={1.6} />
-      ))}
-      <directionalLight position={[-8, 18, 7]} color="#ffe0ba" intensity={1.5} />
-      <hemisphereLight args={['#dfe7ef', '#3a312c', 0.85]} />
+      <RoomLighting mission={mission} reducedMotion={reducedMotion} />
       <group userData={NO_BATCH} />
     </group>
   );

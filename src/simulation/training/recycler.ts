@@ -85,9 +85,10 @@ export function getRecyclerOperation(state: MissionState): RecyclerOperation {
   const recycler = state.modules['water-recycler'];
   const activeFault = activeFaultOf(state);
   if (!t) {
-    const ok = recycler.status === 'operational' && recycler.enabled;
+    const ok = recycler.status === 'operational' && recycler.enabled && recycler.suppliedPowerKw + 1e-9 >= recycler.powerDemandKw;
     return { running: ok, reason: ok ? 'running' : 'standby', activeFault: null, recoveryLph: ok ? NOMINAL_RECOVERY_LPH : 0 };
   }
+  if (recycler.suppliedPowerKw + 1e-9 < recycler.powerDemandKw) return { running: false, reason: 'blackout', activeFault, recoveryLph: 0 };
   const p = t.recycler.procedure;
   if (!recycler.enabled) return { running: false, reason: 'switched-off', activeFault, recoveryLph: 0 };
   if (p.maintenanceMode) return { running: false, reason: 'maintenance', activeFault, recoveryLph: 0 };
@@ -112,7 +113,7 @@ export function readRecycler(state: MissionState): Raw {
   if (!op.running) {
     return {
       'pump-rpm': 0,
-      'pump-power-kw': 0.02,
+      'pump-power-kw': op.reason === 'blackout' || op.reason === 'switched-off' ? 0 : 0.02,
       'circulation-flow-lph': 0,
       'pressure-in-kpa': 101,
       'pressure-out-kpa': 101,

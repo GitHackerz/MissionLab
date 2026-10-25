@@ -100,3 +100,7 @@ The same training mechanics are reachable by walking to the equipment: see [17-P
 | Greenhouse trade-off | Basic model |
 | Mission Autopsy with evidence | Done |
 | Radiation scenario, irrigation experiments, extra procedures per module | Not implemented |
+
+## Progressive workbench update
+
+The default recycler interface now shows a purpose/flow introduction, an evidence workspace, a diagnosis-backed plan, one validated repair action at a time, startup readings and reflection. The full checklist is optional. The previous all-controls UI remains under Advanced training controls for development. All stages derive from current engine records and survive task exit. See [19-LIVING-HABITAT-UX.md](19-LIVING-HABITAT-UX.md) for the circuit bindings and power-aware diagnostic correction.
