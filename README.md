@@ -2,7 +2,7 @@
 
 > **LUMEN 2.0 — Beyond 2030 Hackathon Project**  
 > *Concept Inspiration: NASA Space Apps Challenge 2026 — Build a Junior Astronaut Mission Trainer*  
-> **Status:** Red Storm engine, deterministic branching and Mission Autopsy implemented; see the [verification report](docs/16-IMPLEMENTATION-REPORT.md).
+> **Status:** Three playable missions — The Red Storm, Pressure Drop and Silent Air — with deterministic simulation, local mission saves, verified interventions, rewind and Mission Autopsy. See the [expansion report](docs/20-MULTI-MISSION-EXPANSION.md).
 
 ---
 
@@ -224,4 +224,13 @@ Scientific concepts inspired by NASA Space Apps Challenge 2026 and published NAS
 
 The landing page leads to **Start Training**. Under `/mission`, choose **The Red Storm → View briefing → Begin Mission** to enter the playable habitat. Walk east to Power, use **E** near equipment, and open **Menu / Esc → Colony Overview** for the exterior telemetry view. Time advances only through explicit time controls and engine training actions. Current circuit behaviour, progressive repair UX and validation are documented in [the living habitat report](docs/19-LIVING-HABITAT-UX.md); the earlier visual pass is in [the gameplay overhaul report](docs/18-GAMEPLAY-OVERHAUL.md).
 
-The live mission starts with the storm active. Open **Mission Autopsy & Rewind** to inspect evidence, select an earlier hourly state or same-hour decision, create an independent branch and compare it with the original outcome. Turn off greenhouse and research at hour 0 and repair the recycler at hour 30 to survive. Scenario equations and assumptions are in [the engine guide](docs/04-SIMULATION-ENGINE.md).
+The Red Storm mission starts with the storm active. Open **Mission Autopsy & Rewind** to inspect evidence, select an earlier hourly state or same-hour decision, create an independent branch and compare it with the original outcome. Turn off greenhouse and research at hour 0 and repair the recycler at hour 30 to survive. Scenario equations and assumptions are in [the engine guide](docs/04-SIMULATION-ENGINE.md).
+
+
+### Three-mission training
+
+Open `/mission`, choose **Start Training**, select a mission and guidance level, then review its briefing. **Resume** restores that mission’s compatible browser-local attempt; **Begin** starts a fresh attempt for that mission. Pressure Drop and Silent Air use one-minute simulation steps, explicit diagnostic/maintenance time costs, and monitored recovery windows. Their exercise variants change the hidden equipment fault while preserving the declared safety rules.
+
+Use **Training menu** to switch missions. Colony controls and in-world consoles request the same validated actions; WebGL is optional for mission completion. Fankouch offers short, non-spoiling context. Progress is stored per mission in local browser storage, not cloud account storage.
+
+Physical models, source provenance, reproducible scenario helpers and browser verification instructions: [multi-mission report](docs/20-MULTI-MISSION-EXPANSION.md).

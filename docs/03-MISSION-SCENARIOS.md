@@ -36,25 +36,17 @@ A fictional 2045 habitat in Chryse Planitia houses four astronauts. At hour 0, a
 
 The successful policy keeps both optional loads off through hour 72. Other research schedules can be explored using the same engine; no score or outcome is hardcoded. Oxygen production consumes 0.18 L/h process water at nominal output, making normal water loss 0.26 L/h and fault/repair loss 0.68 L/h. All equations, interval conventions and simplifying assumptions are in [04-SIMULATION-ENGINE.md](04-SIMULATION-ENGINE.md).
 
-## 5. Future Mission Scenarios (Post-Hackathon Catalog)
+## Implemented mission catalog
 
-These scenarios illustrate how the MissionLab architecture extends to a curriculum-aligned mission catalog:
+| Number | Stable ID | Mission | Core learning |
+|---|---|---|---|
+| 01 | `mission-01-red-storm` | The Red Storm | Power, water recovery and evidence-based maintenance |
+| 02 | `mission-02-pressure-drop` | Pressure Drop | Gas conservation, compartment isolation and pressure verification |
+| 03 | `mission-03-silent-air` | Silent Air | CO₂ removal, ventilation, oxygen distinctions and independent instruments |
 
-### Mission 02: ECLSS Atmospheric Cascade (Grade Level 9–12)
-- **Crisis:** Sabatier carbon dioxide reduction reactor malfunctions. Carbon dioxide levels in the habitat rise while oxygen generation becomes constrained.
-- **Concepts:** Atmospheric partial pressures, CO₂ toxicity thresholds, chemical scrubber saturation.
+All three are playable, with identical physics across Cadet/Engineer/Commander guidance levels. New atmospheric missions offer reproducible Exercise A/B/C fault variants without revealing the cause in their briefings. Full equations, assumptions, reference paths and verification are in [20-MULTI-MISSION-EXPANSION.md](20-MULTI-MISSION-EXPANSION.md).
 
-### Mission 03: The Solar Proton Event (Grade Level 10–University)
-- **Crisis:** Coronal mass ejection (CME) produces an intense solar particle storm. Crew must retreat to the pressurized regolith storm shelter while keeping critical systems operating remotely.
-- **Concepts:** Radiation shielding half-value layers, remote telemetry control, emergency load shedding.
-
-### Mission 04: Hydroponic Nitrogen Depletion (Grade Level 8–11)
-- **Crisis:** Closed-loop crop nutrient cycle suffers a biofilter bacterial crash. Crop plants exhibit chlorosis, threatening long-term food rations.
-- **Concepts:** Nitrogen cycle, closed ecological life support systems, biological recycling buffers.
-
-### Mission 05: Earth Communications Blackout (Grade Level 9–12)
-- **Crisis:** Mars solar conjunction blocks radio communications between Earth and Mars for 14 days. Autonomous operational decision-making with zero ground telemetry support.
-- **Concepts:** Autonomous systems, delayed feedback loops, contingency reserves.
+Older design documents used “Mission 02” for a speculative ECLSS cascade and “Mission 03” for a solar-proton event. These speculative display assignments are retired; no playable save IDs existed for them. Silent Air implements an atmospheric-treatment exercise, not a Sabatier model. Radiation, hydroponic nutrient depletion and communications blackout remain **unnumbered future concepts, not playable missions**. No radiation scenario was added in this milestone.
 
 ---
 

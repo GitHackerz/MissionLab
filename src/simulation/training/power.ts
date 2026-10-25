@@ -4,7 +4,7 @@
  * then is the plan applied. No separate model, so forecast and outcome agree.
  */
 import type { MissionState, MissionStatus } from '../types';
-import { RED_STORM_CONFIG } from '../config';
+import { getMissionConfig } from '../config';
 import { syncRecyclerModule, type AdvanceFn } from './apply';
 import type { PlanLoadId } from './types';
 
@@ -66,7 +66,7 @@ export function applyPlanToState(state: MissionState, loads: Partial<Record<Plan
     mod.status = enabled ? 'operational' : 'offline';
     mod.suppliedPowerKw = enabled ? mod.powerDemandKw : 0;
     next.events.push({
-      id: `evt-plan-${next.hour}-${id}`,
+      id: `${next.branchId}:plan:${next.events.length}`,
       hour: next.hour,
       type: enabled ? 'MODULE_ENABLED' : 'MODULE_SUSPENDED',
       severity: 'info',
@@ -86,7 +86,7 @@ export function forecastPowerPlan(state: MissionState, loads: Partial<Record<Pla
   // A forecast cannot know about faults that have not happened yet: assume equipment keeps working.
   if (start.training && start.training.recycler.faultOnsetHour === null) start.training.recycler.faultOnsetHour = -1;
   const plan = currentPlan(start);
-  const generationKw = start.stormActive ? RED_STORM_CONFIG.stormSolarGenerationKw : RED_STORM_CONFIG.normalSolarGenerationKw;
+  const generationKw = start.stormActive ? getMissionConfig(state).stormSolarGenerationKw : getMissionConfig(state).normalSolarGenerationKw;
   let demandKw = 0;
   for (const m of Object.values(start.modules)) if (m.enabled && m.status !== 'offline') demandKw += m.powerDemandKw;
 
@@ -103,10 +103,10 @@ export function forecastPowerPlan(state: MissionState, loads: Partial<Record<Pla
 
   const risks: PowerForecast['risks'] = [];
   const minBatteryKwh = Math.min(...samples.map((s) => s.batteryKwh));
-  const belowReserve = samples.find((s) => s.batteryKwh < RED_STORM_CONFIG.batterySafetyThresholdKwh);
+  const belowReserve = samples.find((s) => s.batteryKwh < getMissionConfig(state).batterySafetyThresholdKwh);
   if (!plan['life-support']) risks.push({ severity: 'critical', text: 'Life support is off: oxygen is no longer generated. The crew uses 0.14 kg of oxygen every hour, so the supply will not last the mission.' });
   if (!plan['water-recycler']) risks.push({ severity: 'warning', text: 'Water recycler is off: no water is recovered, so the tank drains at the full crew rate (0.50 L/h).' });
-  if (belowReserve) risks.push({ severity: cur.status === 'failed' ? 'critical' : 'warning', text: `Battery falls below the ${RED_STORM_CONFIG.batterySafetyThresholdKwh} kWh safety reserve at hour ${belowReserve.hour}.` });
+  if (belowReserve) risks.push({ severity: cur.status === 'failed' ? 'critical' : 'warning', text: `Battery falls below the ${getMissionConfig(state).batterySafetyThresholdKwh} kWh safety reserve at hour ${belowReserve.hour}.` });
   if (!plan.greenhouse) risks.push({ severity: 'info', text: 'Greenhouse is dark: no crop growth. Food now comes only from stored rations (a long-term sustainability cost).' });
   if (!plan['research-lab']) risks.push({ severity: 'info', text: 'Research is paused: science points stop accumulating, but life-critical systems keep their power.' });
   if (cur.status === 'failed' && cur.failureReason) risks.push({ severity: 'critical', text: cur.failureReason });

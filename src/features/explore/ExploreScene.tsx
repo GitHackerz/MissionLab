@@ -3,7 +3,7 @@
 import React, { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
-import type { MissionState, TrainingAction } from '@/simulation/types';
+import type { MissionState, MissionAction } from '@/simulation/types';
 import type { RecyclerComponentId } from '@/simulation/training/types';
 import { HabitatMaterialsProvider } from '@/features/habitat-3d/components/HabitatMaterials';
 import { SceneErrorBoundary } from '@/features/habitat-3d/components/SceneFallback';
@@ -26,7 +26,7 @@ interface Props {
   keys: MutableRefObject<GameKeys>;
   selectedComponent: RecyclerComponentId | null;
   onSelectComponent: (id: RecyclerComponentId) => void;
-  onTrainingAction: (a: TrainingAction) => void;
+  onTrainingAction: (a: MissionAction) => void;
   onUnavailable: () => void;
   onReady?: () => void;
 }
@@ -97,6 +97,7 @@ export const ExploreScene: React.FC<Props> = ({ mission, keys, selectedComponent
             serviceActive={serviceActive}
             selectedComponent={selectedComponent}
             hintKey={hintKey}
+            onEmergencyAction={command=>onTrainingAction({type:'EMERGENCY_ACTION',command})}
             onHotspot={onHotspot}
           />
           <Player keys={keys} state={player} reducedMotion={reducedMotion} />

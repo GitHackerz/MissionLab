@@ -1,5 +1,7 @@
 'use client';
 
+import { AtmosphereEquipment } from '@/features/habitat-3d/components/AtmosphereEquipment';
+import type { EmergencyCommand } from '@/simulation/missions/types';
 import React, { MutableRefObject, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
@@ -17,7 +19,7 @@ import type { ServiceHotspot } from '@/features/habitat-3d/utils/serviceInteract
 import type { RecyclerComponentId } from '@/simulation/training/types';
 import {
   CORRIDORS,
-  INTERACTABLES,
+  missionInteractables,
   PROPS,
   Prop,
   RECYCLER_POSITION,
@@ -339,11 +341,12 @@ interface InteriorWorldProps {
   selectedComponent: RecyclerComponentId | null;
   hintKey: string | null;
   onHotspot: (h: ServiceHotspot) => void;
+  onEmergencyAction?: (command:EmergencyCommand)=>void;
 }
 
 const noop = () => {};
 
-export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedId, showMarkers, reducedMotion, stormRef, serviceActive, selectedComponent, hintKey, onHotspot }) => {
+export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedId, showMarkers, reducedMotion, stormRef, serviceActive, selectedComponent, hintKey, onHotspot, onEmergencyAction }) => {
   const mats = useInteriorMaterials();
   useEffect(() => {
     // Service cameras can sit outside a room. Fade its cutaway wall rather than
@@ -378,6 +381,7 @@ export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedI
   return (
     <group>
       <HabitatDressing />
+      {mission.emergency && <AtmosphereEquipment state={mission} position={[0,0,-1.5]} reducedMotion={reducedMotion} onAction={onEmergencyAction} />}
       <StaticShell mats={mats} />
       <AirUnit module={mission.modules['life-support']} reducedMotion={reducedMotion} />
       <BatteryRackLeds mission={mission} mats={mats} />
@@ -388,7 +392,7 @@ export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedI
           <WaterRecycler {...recyclerProps} />
         </group>
       </group>
-      {showMarkers && INTERACTABLES.map((i) => (
+      {showMarkers && missionInteractables(mission.scenarioId).map((i) => (
         <Marker key={i.id} item={i} mission={mission} targeted={targetedId === i.id} reducedMotion={reducedMotion} />
       ))}
       <RoomLighting mission={mission} reducedMotion={reducedMotion} />

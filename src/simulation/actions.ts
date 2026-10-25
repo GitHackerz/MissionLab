@@ -11,6 +11,7 @@ export function isTrainingAction(action: MissionAction): boolean {
  * Determine which player actions are currently valid in the given simulation state.
  */
 export function getAvailableActions(state: MissionState): AvailableAction[] {
+  if (state.emergency) return state.status !== 'running' ? [] : [{ id: 'atmospheric-workbench', type: 'EMERGENCY_ACTION', label: 'Investigate atmosphere', description: 'Use the mission equipment console for diagnostics and intervention.', enabled: true }];
   const actions: AvailableAction[] = [];
   const config = getMissionConfig(state);
 
@@ -161,7 +162,7 @@ export function validateAction(
     }
 
     case 'ADVANCE_TIME': {
-      if (!Number.isSafeInteger(action.hours) || action.hours <= 0) {
+      if (!Number.isSafeInteger(action.hours) || action.hours <= 0 || (state.emergency && !Number.isSafeInteger(action.hours * 60))) {
         return { valid: false, reason: 'Advance duration must be a positive safe integer of hours.' };
       }
       return { valid: true };

@@ -83,7 +83,7 @@ export const MissionBriefing: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
           <button
-            onClick={startMission}
+            onClick={() => startMission()}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded bg-orange-600 hover:bg-orange-500 text-white font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
           >
             <Rocket className="w-4 h-4" aria-hidden />

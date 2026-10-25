@@ -1,3 +1,4 @@
+import type { EmergencyAction, EmergencyState } from './missions/types';
 /**
  * MISSIONLAB - Shared Simulation Contracts
  *
@@ -97,6 +98,8 @@ export interface MissionState {
   failureReason?: string;
   /** Component-level training model (docs/16). Absent in legacy fixtures. */
   training?: TrainingState;
+  missionVersion?: number;
+  emergency?: EmergencyState;
 }
 
 // Discriminated union of in-world player decisions
@@ -110,10 +113,10 @@ export type SessionAction =
   | { type: 'REWIND_TO'; hour: number; branchFrom: string; snapshotId?: string }
   | { type: 'RESET_MISSION' };
 
-export type MissionAction = InWorldAction | SessionAction | TrainingAction;
+export type MissionAction = InWorldAction | SessionAction | TrainingAction | EmergencyAction;
 
 export type ActionResult =
-  | { ok: true; state: MissionState; message?: string; feedback?: TrainingFeedback }
+  | { ok: true; state: MissionState; message?: string; feedback?: TrainingFeedback; decisionState?: MissionState; transitions?: MissionState[] }
   | { ok: false; reason: string; state: MissionState; feedback?: TrainingFeedback };
 
 export interface AvailableAction {
@@ -210,7 +213,7 @@ export interface HabitatSceneProps {
   viewMode?: 'colony' | 'service';
   onViewModeChange?: (mode: 'colony' | 'service') => void;
   /** Receives typed interaction REQUESTS from the 3D equipment. The engine decides what happens. */
-  onTrainingAction?: (action: TrainingAction) => void;
+  onTrainingAction?: (action: MissionAction) => void;
   /** Component the learner is inspecting (highlighted in service view). */
   selectedComponentId?: RecyclerComponentId | null;
   onSelectComponent?: (id: RecyclerComponentId) => void;
@@ -225,7 +228,7 @@ export interface PowerTelemetry {
 }
 
 export interface MissionFailure {
-  kind: 'power' | 'water' | 'oxygen';
+  kind: 'power' | 'water' | 'oxygen' | 'pressure' | 'co2' | 'deadline';
   hour: number;
   resources: Resources;
   causeIds: string[];

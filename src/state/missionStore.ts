@@ -1,3 +1,8 @@
+import { advanceEmergencySteps } from '@/simulation/missions/emergency';
+import { createRegisteredMission } from '@/simulation/engine';
+import { getMission, RED_STORM_ID, isMissionId } from '@/simulation/missions/registry';
+import type { MissionId, FaultId } from '@/simulation/missions/types';
+import { compatibleSession } from '@/simulation/missions/saves';
 import { create } from 'zustand';
 import type {
   ActionResult,
@@ -24,46 +29,49 @@ import { RED_STORM_CONFIG } from '@/simulation/config';
 /** Dev-only fixture switcher in the mission header (hidden in production builds). */
 export const FIXTURES_ENABLED = process.env.NODE_ENV !== 'production';
 
-const SESSION_STORAGE_KEY = 'missionlab_active_session_v1';
-
-export function saveSessionToStorage(state: {
-  missionState: MissionState;
-  history: MissionSnapshot[];
-  branches: MissionBranch[];
-  trainingMode: boolean;
-}) {
+const SESSION_STORAGE_KEY = 'missionlab_sessions_v2';
+const LEGACY_KEY = 'missionlab_active_session_v1';
+interface SavedSession { missionState: MissionState; history: MissionSnapshot[]; branches: MissionBranch[]; trainingMode: boolean }
+interface SavedEnvelope { formatVersion: 2; activeMissionId: MissionId; sessions: Partial<Record<MissionId, { missionVersion: number; session: SavedSession }>> }
+function readEnvelope(): SavedEnvelope {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || 'null') as SavedEnvelope | null;
+    if (raw?.formatVersion === 2 && isMissionId(raw.activeMissionId) && raw.sessions && typeof raw.sessions === 'object') return raw;
+  } catch {}
+  return { formatVersion: 2, activeMissionId: RED_STORM_ID, sessions: {} };
+}
+export function saveSessionToStorage(state: SavedSession) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // Ignore storage quota or disabled storage
-  }
+    const id = state.missionState.scenarioId;
+    if (!isMissionId(id)) return;
+    const envelope = readEnvelope();
+    envelope.activeMissionId = id;
+    envelope.sessions[id] = { missionVersion: getMission(id).version, session: state };
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(envelope));
+  } catch { /* Storage may be unavailable or full. The in-memory mission remains playable. */ }
 }
-
-export function loadSessionFromStorage(): {
-  missionState: MissionState;
-  history: MissionSnapshot[];
-  branches: MissionBranch[];
-  trainingMode: boolean;
-} | null {
+export function loadSessionFromStorage(missionId?: MissionId): SavedSession | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.missionState && Array.isArray(parsed.history)) {
-      return parsed;
+    const envelope = readEnvelope(), id = missionId ?? envelope.activeMissionId;
+    const entry = envelope.sessions[id];
+    if (entry && entry.missionVersion === getMission(id).version && compatibleSession(entry.session) && entry.session.missionState.scenarioId === id) return entry.session;
+    // Only migrate a structurally valid Red Storm v1 session. No other mission can inherit it.
+    if ((!missionId || id === RED_STORM_ID) && !localStorage.getItem(SESSION_STORAGE_KEY)) {
+      const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null') as SavedSession | null;
+      if (legacy && legacy.missionState?.scenarioId === RED_STORM_ID && compatibleSession(legacy)) return legacy;
     }
-  } catch {
-    // Ignore invalid JSON
-  }
+  } catch {}
   return null;
 }
-
-export function clearSessionFromStorage() {
+export function clearSessionFromStorage(missionId?: MissionId) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.removeItem(SESSION_STORAGE_KEY);
+    const envelope = readEnvelope();
+    delete envelope.sessions[missionId ?? envelope.activeMissionId];
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(envelope));
+    if (!missionId || missionId === RED_STORM_ID) localStorage.removeItem(LEGACY_KEY);
   } catch {}
 }
 
@@ -89,8 +97,9 @@ export interface MissionStore {
   enableTraining: () => void;
   setAutoRunning: (running: boolean) => void;
   /** Starts the training mission (used by the mission-ui briefing). */
-  startMission: () => void;
-  restoreSession: () => boolean;
+  startMission: (id?: MissionId, fault?: FaultId) => void;
+  saveRecoveryMessage: string | null;
+  restoreSession: (id?: MissionId) => boolean;
   selectComponent: (id: RecyclerComponentId | null) => void;
   setViewMode: (mode: 'colony' | 'service') => void;
   clearFeedback: () => void;
@@ -119,17 +128,28 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
   autoRunning: false,
 
   setAutoRunning: (running) => set({ autoRunning: running }),
-  startMission: () => get().enableTraining(),
-  restoreSession: () => {
-    const saved = loadSessionFromStorage();
-    if (!saved || !saved.missionState) return false;
+  saveRecoveryMessage: null,
+  startMission: (id = RED_STORM_ID, fault) => {
+    const old = get();
+    saveSessionToStorage(old);
+    const state = createRegisteredMission(id, fault);
+    const history = [createSnapshot(state)];
+    set({ missionState: state, history, branches: [], trainingMode: true, autoRunning: false,
+      availableActions: getAvailableActions(state), selectedModuleId: id === RED_STORM_ID ? 'water-recycler' : 'life-support',
+      selectedComponentId: null, lastFeedback: null, viewMode: 'colony', activeFixtureKey: 'initial', saveRecoveryMessage: null });
+    saveSessionToStorage({ missionState: state, history, branches: [], trainingMode: true });
+  },
+  restoreSession: (id) => {
+    const saved = loadSessionFromStorage(id);
+    if (!saved || !saved.missionState) { set({ saveRecoveryMessage: typeof window !== 'undefined' && (localStorage.getItem(SESSION_STORAGE_KEY) || localStorage.getItem(LEGACY_KEY)) ? 'No compatible saved attempt was found. Choose a mission and launch a fresh attempt; incompatible data is not resumed.' : null }); return false; }
+    saveSessionToStorage(saved);
     set({
       missionState: saved.missionState,
       history: saved.history,
       branches: saved.branches || [],
       trainingMode: saved.trainingMode ?? true,
       availableActions: getAvailableActions(saved.missionState),
-      activeFixtureKey: 'saved',
+      activeFixtureKey: 'saved', autoRunning: false, viewMode: 'colony', lastFeedback: null, saveRecoveryMessage: null,
     });
     return true;
   },
@@ -158,9 +178,11 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
 
     // Special case: Session Reset
     if (action.type === 'RESET_MISSION') {
-      clearSessionFromStorage();
-      const resetState = (get().trainingMode ? createTrainingMission : createInitialMission)(RED_STORM_CONFIG);
+      clearSessionFromStorage(missionState.scenarioId as MissionId);
+      const resetState = missionState.emergency ? createRegisteredMission(missionState.scenarioId as MissionId, missionState.emergency.fault) : (get().trainingMode ? createTrainingMission : createInitialMission)(missionState.config ?? RED_STORM_CONFIG);
+      resetState.missionVersion = getMission(missionState.scenarioId).version;
       const snap = createSnapshot(resetState, action);
+      saveSessionToStorage({missionState:resetState,history:[snap],branches:[],trainingMode:get().trainingMode});
       set({
         missionState: resetState,
         availableActions: getAvailableActions(resetState),
@@ -176,7 +198,7 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
     // Special case: Session Rewind
     if (action.type === 'REWIND_TO') {
       const { branches } = get();
-      if (!Number.isSafeInteger(action.hour) || action.hour < 0 || action.hour > missionState.hour || action.branchFrom !== missionState.branchId) {
+      if (!Number.isFinite(action.hour) || action.hour < 0 || action.hour > missionState.hour || action.branchFrom !== missionState.branchId) {
         return { ok: false, reason: 'Select an existing hour on the active branch.', state: missionState };
       }
       const targetSnap = action.snapshotId
@@ -199,12 +221,22 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
       });
       set({ missionState: restoredState, history: branch.snapshots,
         branches: nextBranches, availableActions: getAvailableActions(restoredState),
-        lastFeedback: null, viewMode: 'colony' });
+        lastFeedback: null, viewMode: 'colony', autoRunning: false });
       return { ok: true, state: restoredState };
     }
 
     // In-world actions
-    const transition = recordMissionAction(missionState, history, action);
+    if (action.type === 'EMERGENCY_ACTION') set({ autoRunning: false });
+    let effectiveAction = action;
+    if (missionState.emergency && missionState.status === 'running' && (action.type === 'ADVANCE_MINUTES' || action.type === 'ADVANCE_TIME')) {
+      const minutes = action.type === 'ADVANCE_MINUTES' ? action.minutes : action.hours * 60;
+      if (Number.isSafeInteger(minutes) && minutes > 0) {
+        const steps = advanceEmergencySteps(missionState, minutes);
+        const alert = steps.find(s=>s.events.slice(missionState.events.length).some(event=>event.severity !== 'info'));
+        if (alert) effectiveAction = {type:'ADVANCE_MINUTES', minutes:alert.emergency!.minute-missionState.emergency.minute};
+      }
+    }
+    const transition = recordMissionAction(missionState, history, effectiveAction);
     const result = transition.result;
     if (result.ok) {
       saveSessionToStorage({

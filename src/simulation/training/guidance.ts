@@ -1,3 +1,5 @@
+import { getEmergencyObjective } from '../missions/presentation';
+import { getMission } from '../missions/registry';
 import type { MissionState } from '../types';
 import { getRecyclerOperation } from './recycler';
 
@@ -25,6 +27,11 @@ export interface Guidance {
 
 /** Derives the current learning objective purely from authoritative state. */
 export function getGuidance(state: MissionState): Guidance {
+  if (state.emergency) {
+    const o = getEmergencyObjective(state), mode = state.emergency.mode;
+    return { stage: state.status !== 'running' ? 'concluded' : o.stage === 'intervention' ? 'repair' : o.stage === 'verification' ? 'verify' : o.stage === 'planning' ? 'plan-repair' : 'diagnose-start',
+      objective:o.title, hint:mode === 'cadet'?o.detail:undefined, concept:mode !== 'commander'?getMission(state.scenarioId).concept:undefined };
+  }
   const t = state.training;
   const mode = t?.mode ?? 'commander';
   const shape = (g: Guidance): Guidance => ({

@@ -9,6 +9,7 @@ import { ResourceHud } from './ResourceHud';
 import { SidePanel } from './SidePanel';
 import { FeedbackToast } from './FeedbackToast';
 import { EventTimeline } from './EventTimeline';
+import { FankouchCompanion } from './atmosphere/FankouchCompanion';
 import { MissionTour } from './MissionTour';
 import { useExploreStore } from '@/features/explore/store';
 import { MissionReview } from '@/features/debrief/components/MissionReview';
@@ -53,6 +54,18 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
     }
   }, [enableTraining]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const st = useMissionStore.getState();
+      if (!st.autoRunning) return;
+      if (st.missionState.status !== 'running' || st.missionState.emergency?.procedure || useExploreStore.getState().mode !== 'exploration') { st.setAutoRunning(false); return; }
+      const oldEvents = st.missionState.events.length;
+      st.applyAction(st.missionState.emergency ? { type:'ADVANCE_MINUTES', minutes:1 } : { type:'ADVANCE_TIME', hours:1 });
+      if (useMissionStore.getState().missionState.events.slice(oldEvents).some(e=>e.severity !== 'info')) st.setAutoRunning(false);
+    }, 1200);
+    return ()=>clearInterval(timer);
+  }, []);
+
   const endTour = useCallback(() => {
     setTouring(false);
     router.replace('/mission');
@@ -71,7 +84,8 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
           savedHour={missionState.hour}
           savedBattery={missionState.resources.batteryKwh}
           savedWater={missionState.resources.waterLiters}
-          onContinue={() => {
+          onContinue={(id) => {
+            if (id && !useMissionStore.getState().restoreSession(id)) return;
             if (worldMode === 'habitat') {
               enterHabitat();
             } else {
@@ -79,8 +93,8 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
             }
             setStarted(true);
           }}
-          onStart={(mode, destination = 'colony') => {
-            useMissionStore.getState().resetMission();
+          onStart={(mode, destination = 'colony', id, fault) => {
+            useMissionStore.getState().startMission(id, fault);
             useMissionStore.getState().applyAction({ type: 'SET_LEARNING_MODE', mode });
             useMissionStore.getState().clearFeedback();
             if (destination === 'habitat') {
@@ -106,17 +120,18 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
   }
 
   return (
-    <main className="flex-1 flex flex-col h-screen overflow-hidden">
+    <main className="flex min-h-screen flex-col overflow-y-auto lg:h-screen lg:min-h-0 lg:overflow-hidden">
       {/* 1. Global Mission Header & Clock */}
-      <MissionHeader account={account} />
+      <MissionHeader account={account} onTrainingMenu={()=>{useMissionStore.getState().setAutoRunning(false);setStarted(false);}} />
 
       {/* 2. Systems Resource Telemetry HUD */}
       <ResourceHud />
+      {!missionState.emergency && <FankouchCompanion />}
 
       {/* 3. Central Interactive Workspace */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 relative">
+      <div className="relative flex flex-col lg:min-h-0 lg:flex-1 lg:flex-row">
         {/* 3D Mars Habitat Digital Twin */}
-        <section id="tour-scene" className="flex-1 h-full min-h-[360px] relative">
+        <section id="tour-scene" className="relative h-[360px] flex-none overflow-hidden lg:h-full lg:min-h-[360px] lg:flex-1">
           <HabitatScene
             missionState={missionState}
             selectedModuleId={selectedModuleId}

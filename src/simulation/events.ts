@@ -52,6 +52,7 @@ export const RED_STORM_SCHEDULED_EVENTS: ScheduledEvent[] = [
 ];
 
 export function processScheduledEvents(state: MissionState): void {
+  if (state.scenarioId !== 'mission-01-red-storm') return;
   for (const event of RED_STORM_SCHEDULED_EVENTS) {
     if (event.hour === state.hour && event.trigger(state)) {
       state.events.push(event.createEvent(state));
