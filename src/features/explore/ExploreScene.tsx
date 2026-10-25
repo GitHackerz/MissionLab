@@ -17,6 +17,7 @@ import { ExploreCamera } from './ExploreCamera';
 import { useExploreStore } from './store';
 import type { GameKeys } from './input/useGameInput';
 import { SPAWN } from './world/layout';
+import { NovaCompanion } from '@/features/nova/components/NovaCompanion';
 
 const GL_PROPS = { antialias: true, alpha: false, powerPreference: 'high-performance' as const };
 const DPR: [number, number] = [1, 1.6];
@@ -100,6 +101,7 @@ export const ExploreScene: React.FC<Props> = ({ mission, keys, selectedComponent
             onHotspot={onHotspot}
           />
           <Player keys={keys} state={player} reducedMotion={reducedMotion} />
+          <NovaCompanion player={player} reducedMotion={reducedMotion} />
           <ExploreCamera player={player} reducedMotion={reducedMotion} />
         </HabitatMaterialsProvider>
       </Canvas>

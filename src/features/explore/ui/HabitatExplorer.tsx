@@ -18,6 +18,7 @@ import { getPlayerObjective, getObjectives } from '../objectives';
 import { getRoomPower, roomEquipmentActive } from '../world/power';
 import { getGuidance } from '@/simulation/training/guidance';
 import { soundManager } from '@/features/audio/soundManager';
+import { NovaDock } from '@/features/nova/components/NovaDock';
 
 const TASK_META: Record<TaskId, { title: string; subtitle: string; layout: 'drawer' | 'panel' }> = {
   'water-recycler': { title: 'Water Recycler', subtitle: 'Life Support Room. Drag to rotate the machine; click its parts.', layout: 'drawer' },
@@ -314,6 +315,7 @@ export const HabitatExplorer: React.FC<{ onTrainingMenu?: () => void }> = ({ onT
       {mode === 'exploration' && !showObjectives && <div className="touch-movement absolute bottom-40 left-4 z-10 grid grid-cols-3 gap-1" aria-label="Touch movement controls">
         {([['up', '↑', 'Move north'], ['left', '←', 'Move west'], ['down', '↓', 'Move south'], ['right', '→', 'Move east']] as const).map(([direction, arrow, label], i) => <button key={direction} type="button" aria-label={label} className={`game-button h-11 w-11 select-none ${i === 0 ? 'col-start-2' : i === 1 ? 'col-start-1 row-start-2' : 'row-start-2'}`} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); keys.current[direction] = true; }} onPointerUp={() => { keys.current[direction] = false; }} onPointerCancel={() => { keys.current[direction] = false; }} onLostPointerCapture={() => { keys.current[direction] = false; }}>{arrow}</button>)}
       </div>}
+      <NovaDock />
       <FeedbackToast className="bottom-28" />
       <button type="button" className="sr-only" onClick={clearFeedback}>Dismiss feedback</button>
     </div>

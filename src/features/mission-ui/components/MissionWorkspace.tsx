@@ -37,7 +37,6 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
   const enableTraining = useMissionStore((s) => s.enableTraining);
   const worldMode = useExploreStore((s) => s.worldMode);
   const enterHabitat = useExploreStore((s) => s.enterHabitat);
-  const exitHabitat = useExploreStore((s) => s.exitHabitat);
   // The guided tour targets the colony view, so it skips the briefing.
   const [started, setStarted] = useState(startTour);
   const [entered, setEntered] = useState(false);
@@ -60,14 +59,6 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
 
   // The header (and its guest-trial lock) is hidden in the briefing and explore views, so keep the account area mounted.
   const guestGate = <div className="pointer-events-none fixed inset-x-0 top-2 z-[60] flex justify-center px-3"><div className="pointer-events-auto">{account}</div></div>;
-
-  const canContinue =
-    entered ||
-    missionState.hour > 0 ||
-    (missionState.training?.powerPlanAppliedHour !== null && missionState.training?.powerPlanAppliedHour !== undefined) ||
-    (missionState.training?.recycler.procedure.completedSteps.length ?? 0) > 0 ||
-    (missionState.training?.hypotheses.length ?? 0) > 0;
-
 
   if (!started) {
     return (
