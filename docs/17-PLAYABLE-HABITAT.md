@@ -60,7 +60,7 @@ Approach (the unit's beacon shows a degraded diamond after the fault) → prompt
 
 ## 8. Character
 
-No rigged astronaut model is bundled and none could be sourced with a verifiable licence in this environment, so the astronaut is a stylised procedural model (`character/Astronaut.tsx`): suit, helmet with visor, life-support pack, articulated arms and legs. Animations implemented: **idle** (breathing, arm sway), **walk**, **run** (faster cycle with forward lean), **turning** (body lean into the turn) and **interact** (right arm reaches forward). Limb swing is blended by speed and smoothed. There are no baked clips. If a licensed GLB is added later, only `Astronaut.tsx` needs replacing; the controller feeds it an `AstronautPose` (`anim`, `speed`, `turn`). See doc 13.
+The astronaut is the MissionLab mascot (chibi helmet with black visor and glowing eyes, headphone ear-cups, star emblems, backpack), built in Blender by `scripts/blender/build_astronaut.py` and exported to `public/models/astronaut.glb` (regenerate with `blender -b -P scripts/blender/build_astronaut.py -- public/models/astronaut.glb`). `character/Astronaut.tsx` loads it with drei `useGLTF` and animates the named limb nodes (`ArmL/ArmR/LegL/LegR`, pivoted at the joints) procedurally: **idle** (breathing, arm sway), **walk**, **run** (faster cycle with forward lean), **turning** (body lean) and **interact** (right arm reaches forward). Limb swing is blended by speed and smoothed. There are no baked clips; the controller feeds the component an `AstronautPose` (`anim`, `speed`, `turn`). See doc 13.
 
 ## 9. Accessibility, performance, tests
 

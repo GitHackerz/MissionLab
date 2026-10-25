@@ -27,6 +27,7 @@ import {
   WALL_H,
   WorldInteractable,
 } from './layout';
+import { HabitatDressing } from './HabitatDressing';
 import { mulberry32 } from '@/features/habitat-3d/utils/terrain';
 
 /** Soften an accent colour toward white so rooms read as tinted, not washed out. */
@@ -49,8 +50,8 @@ function useInteriorMaterials() {
       accents,
       screens,
       corridor: std('#585049', 0.9, 0.05),
-      wall: std('#cfc8bc', 0.75, 0.05),
-      wallTop: std('#9a948a', 0.6, 0.2),
+      wall: std('#aab8b9', 0.75, 0.05),
+      wallTop: std('#354b55', 0.6, 0.2),
       panel: std('#2b3138', 0.55, 0.45),
       body: std('#aeb4ba', 0.5, 0.35),
       soil: std('#3a2a22', 1, 0),
@@ -314,13 +315,13 @@ const Marker: React.FC<{ item: WorldInteractable; mission: MissionState; targete
     <group position={[item.position[0], 0, item.position[2]]}>
       <mesh ref={ring} position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={2}>
         <ringGeometry args={[0.75, 0.85, 36]} />
-        <meshBasicMaterial color={targeted ? '#7dd3fc' : '#94a3b8'} transparent opacity={targeted ? 0.95 : 0.45} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial color={targeted ? '#7dd3fc' : '#94a3b8'} transparent opacity={targeted ? 0.95 : 0.18} depthWrite={false} toneMapped={false} />
       </mesh>
-      <mesh ref={chevron} rotation={[Math.PI, 0, 0]}>
+      <mesh ref={chevron} visible={targeted} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.16, 0.26, 4]} />
         <meshBasicMaterial color={targeted ? '#7dd3fc' : '#cbd5e1'} toneMapped={false} />
       </mesh>
-      {item.moduleId !== 'crew-habitat' && <StatusBeacon status={mission.modules[item.moduleId].status} anim={anim} height={3.1} selected={targeted} />}
+      {item.moduleId !== 'crew-habitat' && <StatusBeacon status={mission.modules[item.moduleId].status} anim={anim} height={1.9} selected={targeted} />}
     </group>
   );
 };
@@ -328,6 +329,7 @@ const Marker: React.FC<{ item: WorldInteractable; mission: MissionState; targete
 interface InteriorWorldProps {
   mission: MissionState;
   targetedId: string | null;
+  showMarkers: boolean;
   reducedMotion: boolean;
   stormRef: MutableRefObject<number>;
   serviceActive: boolean;
@@ -338,8 +340,18 @@ interface InteriorWorldProps {
 
 const noop = () => {};
 
-export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedId, reducedMotion, stormRef, serviceActive, selectedComponent, hintKey, onHotspot }) => {
+export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedId, showMarkers, reducedMotion, stormRef, serviceActive, selectedComponent, hintKey, onHotspot }) => {
   const mats = useInteriorMaterials();
+  useEffect(() => {
+    // Service cameras can sit outside a room. Fade its cutaway wall rather than
+    // letting the wall hide the cartridge handles and tool tray.
+    for (const material of [mats.wall, mats.wallTop]) {
+      material.transparent = serviceActive;
+      material.opacity = serviceActive ? .08 : 1;
+      material.depthWrite = !serviceActive;
+      material.needsUpdate = true;
+    }
+  }, [mats, serviceActive]);
   const layout = MODULE_LAYOUT['water-recycler'].position;
   const recyclerProps: HabitatModuleProps = {
     module: mission.modules['water-recycler'],
@@ -355,6 +367,7 @@ export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedI
   };
   return (
     <group>
+      <HabitatDressing />
       <StaticShell mats={mats} />
       <BatteryRackLeds mission={mission} mats={mats} />
       <GreenhouseDressing mission={mission} mats={mats} reducedMotion={reducedMotion} />
@@ -364,13 +377,14 @@ export const InteriorWorld: React.FC<InteriorWorldProps> = ({ mission, targetedI
           <WaterRecycler {...recyclerProps} />
         </group>
       </group>
-      {INTERACTABLES.map((i) => (
+      {showMarkers && INTERACTABLES.map((i) => (
         <Marker key={i.id} item={i} mission={mission} targeted={targetedId === i.id} reducedMotion={reducedMotion} />
       ))}
       {/* Room lighting: one soft point light per room, in its accent colour, no shadows */}
       {ROOM_LIST.map(([id, r]) => (
         <pointLight key={id} position={[cx(r), 3.4, cz(r)]} color={tint(r.accent)} intensity={id === 'hub' ? 14 : 24} distance={11} decay={1.6} />
       ))}
+      <directionalLight position={[-8, 18, 7]} color="#ffe0ba" intensity={1.5} />
       <hemisphereLight args={['#dfe7ef', '#3a312c', 0.85]} />
       <group userData={NO_BATCH} />
     </group>

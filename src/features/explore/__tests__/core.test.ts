@@ -140,3 +140,29 @@ describe('gameplay lifecycle', () => {
     expect(useExploreStore.getState().showObjectives).toBe(true);
   });
 });
+
+describe('mission menu and review lifecycle', () => {
+  it('locks task entry while paused and resumes without changing the saved pose', () => {
+    useExploreStore.getState().enterHabitat();
+    useExploreStore.getState().rememberPose({ x: 5, z: 0, yaw: 1 });
+    useExploreStore.getState().togglePause();
+    expect(useExploreStore.getState().mode).toBe('paused');
+    expect(useExploreStore.getState().beginTask('power-console', 'power-console')).toBe(false);
+    useExploreStore.getState().togglePause();
+    expect(useExploreStore.getState().mode).toBe('exploration');
+    expect(useExploreStore.getState().lastPose).toEqual({ x: 5, z: 0, yaw: 1 });
+  });
+
+  it('opens autopsy directly from a mission task without a transition timer race', () => {
+    useExploreStore.getState().enterHabitat();
+    useExploreStore.getState().beginTask('mission-console', 'mission-console');
+    useExploreStore.getState().finishTransition();
+    useExploreStore.getState().openDebrief();
+    expect(useExploreStore.getState().mode).toBe('debrief');
+    expect(useExploreStore.getState().activeTaskId).toBeNull();
+    useExploreStore.getState().finishTransition();
+    expect(useExploreStore.getState().mode).toBe('debrief');
+    useExploreStore.getState().closeDebrief();
+    expect(useExploreStore.getState().mode).toBe('exploration');
+  });
+});

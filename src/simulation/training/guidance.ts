@@ -48,7 +48,7 @@ export function getGuidance(state: MissionState): Guidance {
       return shape({
         stage: 'power-plan',
         objective: 'A dust storm cut solar power to 4.0 kW. Work out which systems the colony can afford to run, then apply a power plan.',
-        hint: 'Open the Power tab. Which loads keep people alive, and which only help the mission goals?',
+        hint: 'Find the Power Distribution Board in the Power Room, east of the Central Hub. Which loads keep people alive, and which only help the mission goals?',
         concept: 'Batteries only store energy that panels already made. If demand is higher than generation, the battery drains.',
       });
     }
@@ -94,7 +94,7 @@ export function getGuidance(state: MissionState): Guidance {
     return shape({
       stage: 'diagnose-start',
       objective: 'Water recovery has dropped below the expected range. Find out why without guessing: inspect the recycler and collect measurements.',
-      hint: 'Select the recycler, open its service view, and run a diagnostic test. Each test takes simulated time.',
+      hint: 'Find the recycler in Life Support, west of the Central Hub. Press E and run a diagnostic test. Each test takes simulated time.',
       concept: 'A symptom (low recovery) can have several different causes. Evidence tells them apart.',
     });
   }

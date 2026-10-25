@@ -40,12 +40,22 @@ export const MissionDebrief: React.FC = () => {
   return (
     <div className="space-y-5 p-4 text-xs">
       <div>
-        <h2 className="flex items-center gap-2 text-base font-bold text-stone-100"><ScrollText className="h-4 w-4 text-orange-400" /> Mission debrief</h2>
+        <h2 className="flex items-center gap-2 text-base font-bold text-stone-100"><ScrollText className="h-4 w-4 text-orange-400" /> Mission Autopsy</h2>
         <p className="mt-1 leading-relaxed text-stone-300">
           {concluded ? (missionState.status === 'success' ? 'Mission accomplished.' : `Mission failed: ${missionState.failureReason ?? ''}`) : 'The mission is still running. This debrief updates as you act, and every statement comes from what you actually did.'}
         </p>
       </div>
 
+      <section aria-label="Mission evidence summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          ['Mission clock', `${missionState.hour.toFixed(1)} / ${missionState.durationHours} h`],
+          ['Water reserve', `${missionState.resources.waterLiters.toFixed(1)} L`],
+          ['Evidence collected', `${missionState.training?.evidence.length ?? 0} tests`],
+          ['Startup verification', missionState.training?.recycler.procedure.verification ? (missionState.training.recycler.procedure.verification.passed ? 'Passed' : 'Failed') : 'Not yet run'],
+        ].map(([label, value]) => <div key={label} className="rounded border border-sky-300/20 bg-sky-950/20 p-3"><div className="text-xs text-stone-400">{label}</div><div className="mt-1 text-lg text-sky-100">{value}</div></div>)}
+      </section>
+      <details className="rounded border border-mars-border p-3"><summary className="cursor-pointer text-sm text-orange-200">Trace the outcome to its causes</summary><ol className="mt-3 list-decimal space-y-2 pl-4 leading-relaxed text-stone-300">{summary.autopsyCauseChain.map((cause, i) => <li key={i}>{cause}</li>)}</ol></details>
+      <p className="text-sm leading-relaxed text-stone-300">Reflect: which measurement changed your mind? Rewind a decision below and test one change. Compare the reserve margins with your earlier attempt.</p>
       {assessment && (
         <>
           <ul className="space-y-2" aria-label="Learning assessment">

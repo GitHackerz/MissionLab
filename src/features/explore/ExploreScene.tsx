@@ -78,7 +78,8 @@ export const ExploreScene: React.FC<Props> = ({ mission, keys, selectedComponent
         onCreated={({ gl, scene }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.0;
-          scene.background = new THREE.Color('#0d0c0c');
+          scene.background = new THREE.Color('#827367');
+          scene.fog = new THREE.Fog('#827367', 28, 85);
           if (process.env.NODE_ENV !== 'production') (window as unknown as Record<string, unknown>).__exploreDebug = { gl, scene, camera, player };
           onReady?.();
         }}
@@ -86,6 +87,7 @@ export const ExploreScene: React.FC<Props> = ({ mission, keys, selectedComponent
         <HabitatMaterialsProvider stormRef={stormRef}>
           <InteriorWorld
             mission={mission}
+            showMarkers={mode === 'exploration'}
             targetedId={nearbyId}
             reducedMotion={reducedMotion}
             stormRef={stormRef}

@@ -91,6 +91,7 @@ export const TrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     return <div className="p-4 text-xs text-stone-400">This state has no training model (fixture). Reset the mission or choose the engine demo.</div>;
   }
   const p = t.recycler.procedure;
+  const nextStep = STEPS.find(s => !p.completedSteps.includes(s.id));
   const lastHyp = t.hypotheses[t.hypotheses.length - 1];
   const chosenSlot: ReplaceableId = slot ?? (lastHyp ? FAULT_SLOT[lastHyp.kind] : 'pump-cartridge');
   const faultSeen = t.recycler.faultOnsetHour !== null;
@@ -147,6 +148,12 @@ export const TrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded = fal
 
   return (
     <div className="space-y-5 p-4 text-xs">
+      {embedded && <div className="sticky -top-4 z-10 -mx-4 border-b border-sky-300/20 bg-[#142733]/95 px-4 py-3 backdrop-blur">
+        <div className="flex items-center justify-between text-xs text-sky-200"><span>ENGINEERING WORKBENCH</span><span>{p.completedSteps.length} / {STEPS.length} steps</span></div>
+        <div className="mt-2 h-1 overflow-hidden rounded bg-white/10"><div className="h-full bg-sky-300 transition-all" style={{ width: `${p.completedSteps.length / STEPS.length * 100}%` }} /></div>
+        <p className="mt-2 text-sm font-semibold">{p.verification?.passed ? 'Verified: water recovery restored' : nextStep ? nextStep.label : 'Review the startup readings'}</p>
+        <p className="mt-1 text-xs text-stone-300">{p.tool ? `Tool: ${TOOL_LABEL[p.tool]}` : 'No tool selected'} · {p.held ? `Holding: ${PART_LABEL[p.held.part]}` : 'Hands free'} · {p.maintenanceMode ? 'Unit isolated' : 'Unit in service'}</p>
+      </div>}
       {/* Objective */}
       <div className="rounded border border-orange-500/40 bg-orange-950/20 p-3">
         <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-orange-400">Current objective</div>
@@ -290,12 +297,12 @@ export const TrainingPanel: React.FC<{ embedded?: boolean }> = ({ embedded = fal
           {STEPS.map((s) => {
             const done = p.completedSteps.includes(s.id);
             return (
-              <li key={s.id} className="flex items-start gap-2 rounded border border-mars-border/60 bg-black/20 p-1.5">
+              <li key={s.id} className={`flex items-start gap-2 rounded border p-2.5 ${nextStep?.id === s.id ? 'border-sky-300/60 bg-sky-950/40' : 'border-mars-border/60 bg-black/20'}`}>
                 {done ? <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" aria-label="done" /> : <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-stone-600" aria-label="not done" />}
                 <div className="flex-1">
                   <div className={done ? 'text-stone-400' : 'text-stone-200'}>{s.label}</div>
                   {!done && t.mode !== 'commander' && <div className="text-[10px] text-stone-500">{s.detail}</div>}
-                  <div className={`mt-1 ${done ? 'opacity-60' : ''}`}>{rowAction(s.id)}</div>
+                  {done && s.id !== 'select-tool' ? <details className="mt-1 text-stone-400"><summary className="cursor-pointer text-xs">Completed · review action</summary><div className="mt-2">{rowAction(s.id)}</div></details> : <div className="mt-2">{rowAction(s.id)}</div>}
                 </div>
               </li>
             );

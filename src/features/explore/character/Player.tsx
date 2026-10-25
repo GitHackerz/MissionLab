@@ -1,6 +1,6 @@
 'use client';
 
-import React, { MutableRefObject, useRef } from 'react';
+import React, { MutableRefObject, Suspense, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Astronaut, AstronautPose } from './Astronaut';
@@ -42,7 +42,7 @@ export const Player: React.FC<PlayerProps> = ({ keys, state, reducedMotion }) =>
     const dt = Math.min(delta, 0.05);
     const store = useExploreStore.getState();
     const s = state.current;
-    const exploring = store.mode === 'exploration' && store.worldMode === 'habitat';
+    const exploring = store.mode === 'exploration' && store.worldMode === 'habitat' && !store.showObjectives;
 
     let ix = 0;
     let iz = 0;
@@ -62,6 +62,7 @@ export const Player: React.FC<PlayerProps> = ({ keys, state, reducedMotion }) =>
     if (Math.abs(vel.current.x) < 0.01 && tx === 0) vel.current.x = 0;
     if (Math.abs(vel.current.z) < 0.01 && tz === 0) vel.current.z = 0;
 
+    if (!exploring) { vel.current.x = 0; vel.current.z = 0; }
     const moved = moveWithCollision(s.x, s.z, vel.current.x * dt, vel.current.z * dt, PLAYER_RADIUS, COLLIDERS);
     s.x = moved.x;
     s.z = moved.z;
@@ -109,7 +110,10 @@ export const Player: React.FC<PlayerProps> = ({ keys, state, reducedMotion }) =>
 
   return (
     <group ref={root}>
-      <Astronaut pose={pose} reducedMotion={reducedMotion} />
+      <mesh position={[0, .012, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}><circleGeometry args={[.32, 20]} /><meshBasicMaterial color="#10212a" transparent opacity={.24} depthWrite={false} /></mesh>
+      <Suspense fallback={null}>
+        <Astronaut pose={pose} reducedMotion={reducedMotion} />
+      </Suspense>
     </group>
   );
 };

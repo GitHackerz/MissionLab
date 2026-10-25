@@ -6,7 +6,7 @@ import type { RoomId, TaskId } from './world/layout';
  * procedure progress) lives in the mission store / engine. Character transforms live
  * in refs and are never stored here, so walking never re-renders the app.
  */
-export type GameplayMode = 'exploration' | 'transitioning' | 'task' | 'debrief';
+export type GameplayMode = 'exploration' | 'transitioning' | 'task' | 'debrief' | 'paused';
 export type WorldMode = 'colony' | 'habitat';
 
 export interface ExploreState {
@@ -22,6 +22,7 @@ export interface ExploreState {
   /** Last known player pose, so re-entering the habitat resumes in place. */
   lastPose: { x: number; z: number; yaw: number } | null;
 
+  togglePause: () => void;
   enterHabitat: () => void;
   exitHabitat: () => void;
   setNearby: (id: string | null) => void;
@@ -50,6 +51,11 @@ const initial = {
 
 export const useExploreStore = create<ExploreState>((set, get) => ({
   ...initial,
+
+  togglePause: () => {
+    const mode = get().mode;
+    if (mode === 'exploration' || mode === 'paused') set({ mode: mode === 'paused' ? 'exploration' : 'paused', showObjectives: false });
+  },
 
   enterHabitat: () => set({ ...initial, worldMode: 'habitat', lastPose: get().lastPose }),
   exitHabitat: () => set({ worldMode: 'colony', mode: 'exploration', activeTaskId: null, activeInteractableId: null, transitionDirection: null, nearbyId: null, showObjectives: false }),
@@ -90,7 +96,7 @@ export const useExploreStore = create<ExploreState>((set, get) => ({
   },
 
   openDebrief: () => {
-    if (get().mode === 'exploration') set({ mode: 'debrief' });
+    if (get().mode === 'exploration' || get().mode === 'task') set({ mode: 'debrief', activeTaskId: null, activeInteractableId: null, transitionDirection: null, showObjectives: false });
   },
   closeDebrief: () => {
     if (get().mode === 'debrief') set({ mode: 'exploration' });

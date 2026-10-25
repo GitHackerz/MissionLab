@@ -8,7 +8,7 @@ import { useExploreStore } from './store';
 import { INTERACTABLES } from './world/layout';
 import type { PlayerRef } from './character/Player';
 
-const FOLLOW_OFFSET = new THREE.Vector3(0, 8.2, 6.2);
+const FOLLOW_OFFSET = new THREE.Vector3(0, 9.5, 7.3);
 const LOOK_OFFSET = new THREE.Vector3(0, 0.9, 0);
 /** A transition always completes within this time, so controls can never stay locked. */
 const MAX_TRANSITION_S = 2.2;
@@ -29,12 +29,14 @@ interface Props {
  * camera hands over to a limited orbit so the learner can rotate around the machine.
  */
 export const ExploreCamera: React.FC<Props> = ({ player, reducedMotion }) => {
+  const size = useThree((s) => s.size);
   const camera = useThree((s) => s.camera);
   const mode = useExploreStore((s) => s.mode);
   const taskId = useExploreStore((s) => s.activeTaskId);
   const started = useRef(0);
   const last = useRef<{ mode: string; dir: string | null }>({ mode: '', dir: null });
   const orbit = mode === 'task' && taskId === 'water-recycler';
+  const drawer = mode === 'task' && ['water-recycler', 'air-unit', 'greenhouse-station', 'crew-terminal'].includes(taskId ?? '');
   const orbitTarget = useRef<[number, number, number]>([0, 0.5, 0]);
   const focusRef = useRef<(typeof INTERACTABLES)[number] | null>(null);
 
@@ -42,6 +44,16 @@ export const ExploreCamera: React.FC<Props> = ({ player, reducedMotion }) => {
     const id = useExploreStore.getState().activeInteractableId;
     if (id) focusRef.current = INTERACTABLES.find((i) => i.id === id) ?? null;
   }, [mode, taskId]);
+
+  useEffect(() => {
+    const perspective = camera as THREE.PerspectiveCamera;
+    if (drawer) {
+      // Keep the machine centred in the part of the viewport not occupied by the task.
+      if (size.width >= 768) perspective.setViewOffset(size.width, size.height, Math.min(480, size.width * .4) / 2, 0, size.width, size.height);
+      else perspective.setViewOffset(size.width, size.height, 0, size.height * .27, size.width, size.height);
+    } else perspective.clearViewOffset();
+    perspective.updateProjectionMatrix();
+  }, [camera, drawer, size.width, size.height]);
 
   // Start from the follow position so there is no jump when the habitat opens.
   useEffect(() => {
@@ -61,7 +73,7 @@ export const ExploreCamera: React.FC<Props> = ({ player, reducedMotion }) => {
     const inTask = (st.mode === 'task' || (st.mode === 'transitioning' && st.transitionDirection === 'in')) && focus;
     if (inTask && focus) {
       goalLook.set(...focus.focus.target);
-      goalPos.copy(goalLook).add(new THREE.Vector3(...focus.focus.offset));
+      goalPos.set(...focus.focus.offset).add(goalLook);
       orbitTarget.current = focus.focus.target;
     } else {
       goalLook.set(p.x, 0, p.z).add(LOOK_OFFSET);

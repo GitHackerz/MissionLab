@@ -24,3 +24,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Optional isolated local verification output
+.next-*/
+.playwright-cli/

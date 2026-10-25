@@ -22,11 +22,11 @@ export interface Rect {
 }
 
 export const ROOMS: Record<RoomId, Rect & { label: string; accent: string; floor: string }> = {
-  hub: { minX: -2, maxX: 2, minZ: -2, maxZ: 2, label: 'Central Hub', accent: '#e2e8f0', floor: '#6b6460' },
-  'mission-control': { minX: -4, maxX: 4, minZ: -9, maxZ: -4, label: 'Mission Control', accent: '#38bdf8', floor: '#4f5963' },
-  power: { minX: 4, maxX: 10, minZ: -3, maxZ: 3, label: 'Power Room', accent: '#fbbf24', floor: '#645c4c' },
-  'life-support': { minX: -10, maxX: -4, minZ: -3, maxZ: 3, label: 'Life Support', accent: '#22d3ee', floor: '#4d6068' },
-  greenhouse: { minX: -4, maxX: 4, minZ: 4, maxZ: 9, label: 'Greenhouse', accent: '#4ade80', floor: '#4f6049' },
+  hub: { minX: -2, maxX: 2, minZ: -2, maxZ: 2, label: 'Central Hub', accent: '#e2e8f0', floor: '#52616a' },
+  'mission-control': { minX: -4, maxX: 4, minZ: -9, maxZ: -4, label: 'Mission Control', accent: '#38bdf8', floor: '#3f5565' },
+  power: { minX: 4, maxX: 10, minZ: -3, maxZ: 3, label: 'Power Room', accent: '#fbbf24', floor: '#625e50' },
+  'life-support': { minX: -10, maxX: -4, minZ: -3, maxZ: 3, label: 'Life Support', accent: '#22d3ee', floor: '#45636a' },
+  greenhouse: { minX: -4, maxX: 4, minZ: 4, maxZ: 9, label: 'Greenhouse', accent: '#4ade80', floor: '#4f6657' },
 };
 
 /** Short connecting corridors (floor only; walls below). */

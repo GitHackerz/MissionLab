@@ -39,3 +39,48 @@ body {
   font-family: ui-monospace, monospace;
   font-size: 10px;
 }
+
+:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 4px; }
+button, input, select { touch-action: manipulation; }
+button { transition: background-color .15s, border-color .15s; }
+.briefing { position: relative; min-height: 100dvh; overflow: auto; background: #10191e; color: #f5f0e7; padding: 36px 6vw; isolation: isolate; }
+.briefing-brand { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 750; letter-spacing: .16em; }
+.briefing-brand > span { border-left: 1px solid #52616a; padding-left: 18px; margin-left: 12px; font: 10px ui-monospace, monospace; letter-spacing: .16em; color: #9cabb3; }
+.briefing-copy { position: relative; max-width: 540px; margin: 8vh 0 64px; }
+.mission-eyebrow { display: flex; align-items: center; gap: 10px; color: #e7af7d; font: 11px ui-monospace, monospace; letter-spacing: .18em; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #efb17b; box-shadow: 0 0 16px #efb17b; }
+.briefing h1 { font-size: clamp(64px, 8vw, 118px); font-weight: 650; line-height: .95; letter-spacing: -.07em; margin: 28px 0; }
+.briefing h1 em { color: #ed9c6d; font-style: normal; }
+.briefing-lead { font-size: 23px; line-height: 1.4; letter-spacing: -.02em; }
+.briefing-description { max-width: 410px; font-size: 15px; line-height: 1.75; color: #aab6be; margin: 18px 0; }
+.briefing-goals { display: flex; flex-wrap: wrap; gap: 22px; font-size: 12px; color: #d3dce0; margin: 26px 0; }
+.briefing-goals span { display: flex; align-items: center; gap: 8px; }
+.start-mission { width: 285px; display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; background: #edaa7e; color: #182126; font-size: 16px; font-weight: 700; border-radius: 3px; }
+.start-mission:hover { background: #ffc49d; }
+.briefing-controls { display: flex; align-items: center; gap: 10px; margin-top: 20px; font-size: 11px; color: #96a5ae; }
+.briefing-controls kbd { color: #d0d9de; font-size: 10px; }
+.briefing-orbit { position: absolute; z-index: -1; width: 76vw; height: 76vw; max-width: 1100px; max-height: 1100px; right: -25vw; top: 3vh; border: 1px solid #71808a30; border-radius: 50%; padding: 6vw; transform: rotate(-18deg); }
+.briefing-orbit::before { content: ''; position: absolute; inset: -4vw; border: 1px solid #71808a15; border-radius: 50%; }
+.briefing-planet { width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(ellipse at 29% 27%, #e1a27a 0, #a65c40 25%, #703e30 47%, #2a2928 70%, #111a20 85%); box-shadow: inset -45px -25px 100px #09141f, 0 0 90px #e2a48215; }
+.briefing-orbit > span { position: absolute; top: 45%; left: -70px; color: #81909a; font: 10px ui-monospace, monospace; writing-mode: vertical-rl; }
+.briefing-coordinate { position: absolute; right: 7vw; bottom: 13vh; display: flex; gap: 12px; font: 11px/1.9 ui-monospace, monospace; color: #eeb48a; }
+.briefing-coordinate span { color: #96a5ae; font-size: 10px; }
+.briefing-footer { display: flex; justify-content: space-between; font: 10px ui-monospace, monospace; color: #75868f; letter-spacing: .12em; }
+.game-surface { background: rgba(16, 27, 34, .90); border: 1px solid #a7bcc42b; backdrop-filter: blur(14px); border-radius: 6px; box-shadow: 0 8px 32px #0002; }
+.game-button { min-height: 36px; border: 1px solid #a7bcc438; background: #13232bcc; border-radius: 4px; padding: 7px 12px; font-size: 12px; color: #d6e2e7; }
+.game-button:hover { background: #31434e; }
+.game-button:disabled { opacity: .4; }
+.task-content { font-size: 14px; }
+.task-content .text-\[10px\], .task-content .text-\[11px\], .task-content .text-xs { font-size: 12px; }
+.task-content button { min-height: 32px; }
+@media (max-width: 640px) {
+  .briefing { padding: 26px 7vw; }
+  .briefing-brand > span, .briefing-coordinate { display: none; }
+  .briefing-copy { margin-top: 9vh; }
+  .briefing-orbit { opacity: .35; right: -40vw; width: 110vw; height: 110vw; top: 16vh; }
+  .briefing-controls { flex-wrap: wrap; gap: 7px; }
+  .briefing-footer { font-size: 8px; }
+}
+
+.touch-movement { display: none; }
+@media (pointer: coarse) { .touch-movement { display: grid; } }
