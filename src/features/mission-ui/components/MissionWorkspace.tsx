@@ -12,7 +12,7 @@ import { EventTimeline } from './EventTimeline';
 import { MissionTour } from './MissionTour';
 import { useExploreStore } from '@/features/explore/store';
 import { MissionReview } from '@/features/debrief/components/MissionReview';
-import { MissionBriefing } from '@/features/explore/ui/MissionBriefing';
+import { MissionIntro } from './MissionIntro';
 
 const HabitatExplorer = dynamic(() => import('@/features/explore/ui/HabitatExplorer'), { ssr: false });
 
@@ -53,12 +53,8 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
   const guestGate = <div className="fixed left-1/2 top-3 z-40 -translate-x-1/2">{account}</div>;
 
   if (!started) {
-    return (
-      <>
-        <MissionBriefing onStart={() => { enterHabitat(); setStarted(true); }} />
-        {guestGate}
-      </>
-    );
+    // The briefing has its own top bar, so the account area (and guest timer/lock) lives inside it.
+    return <MissionIntro account={account} onStart={() => { enterHabitat(); setStarted(true); }} />;
   }
   if (worldMode === 'habitat') {
     return (

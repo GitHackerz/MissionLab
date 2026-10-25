@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requireUser } from '@/server/auth/session';
+import { homePathFor, requireUser } from '@/server/auth/session';
 import { AuthShell } from '@/features/auth/components/AuthShell';
 import { OnboardingForm } from '@/features/auth/components/AuthForms';
 
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function WelcomePage() {
   const user = await requireUser();
-  if (user.onboardedAt) redirect('/mission');
+  if (user.onboardedAt) redirect(homePathFor(user));
 
   return (
     <AuthShell

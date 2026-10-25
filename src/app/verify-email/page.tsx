@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/server/auth/session';
+import { getCurrentUser, homePathFor } from '@/server/auth/session';
 import { AuthShell } from '@/features/auth/components/AuthShell';
 import { ResendVerificationForm } from '@/features/auth/components/AuthForms';
 
@@ -13,7 +13,7 @@ export default async function VerifyEmailPage({
 }) {
   const params = await searchParams;
   const user = await getCurrentUser();
-  if (user?.emailVerifiedAt) redirect(user.onboardedAt ? '/mission' : '/welcome');
+  if (user?.emailVerifiedAt) redirect(homePathFor(user));
 
   if (params.status === 'invalid') {
     return (

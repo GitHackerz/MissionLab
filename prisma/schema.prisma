@@ -28,11 +28,131 @@ model User {
   role            UserRole?
   emailVerifiedAt DateTime?
   onboardedAt     DateTime?
+  /// Demo students created by "Create sample class"; they cannot log in.
+  isSample        Boolean   @default(false)
+  /// Plan id from src/config/plans.ts. Paid plans are bought with fictional Stardust (simulated payment).
+  plan            String    @default("explorer")
+  planRenewsAt    DateTime?
+  /// Fictional pilot currency balance. Never real money.
+  stardust        Int       @default(2000)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  sessions Session[]
-  tokens   AuthToken[]
+  sessions    Session[]
+  tokens      AuthToken[]
+  classrooms  Classroom[]  @relation("TeacherClassrooms")
+  enrollments Enrollment[]
+  runs        MissionRun[]
+  assignedTo  AssignmentTarget[]
+  payments    Payment[]
+}
+
+/// A simulated plan purchase paid in Stardust. No card data is ever collected.
+model Payment {
+  id        String   @id @default(cuid())
+  receiptNo String   @unique
+  userId    String
+  planId    String
+  amount    Int
+  currency  String   @default("STD")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum RunOutcome {
+  SUCCESS
+  FAILED
+}
+
+model Classroom {
+  id        String   @id @default(cuid())
+  name      String
+  /// Short code students type to join, e.g. RED-4821.
+  joinCode  String   @unique
+  teacherId String
+  isSample  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  teacher     User         @relation("TeacherClassrooms", fields: [teacherId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  assignments Assignment[]
+
+  @@index([teacherId])
+}
+
+/// A mission a teacher assigned. missionId is the scenarioId from src/config/missions.ts.
+/// No targets = the whole class; otherwise only the listed students.
+/// A student has completed it once they finish a run of that mission after the assignment was created.
+model Assignment {
+  id          String    @id @default(cuid())
+  classroomId String
+  missionId   String
+  note        String?
+  dueAt       DateTime?
+  createdAt   DateTime  @default(now())
+
+  classroom Classroom          @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  targets   AssignmentTarget[]
+
+  @@index([classroomId])
+}
+
+model AssignmentTarget {
+  assignmentId String
+  studentId    String
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([assignmentId, studentId])
+  @@index([studentId])
+}
+
+/// A student's membership in a class. DISABLED pauses their mission access without deleting their history.
+model Enrollment {
+  id          String           @id @default(cuid())
+  classroomId String
+  studentId   String
+  status      EnrollmentStatus @default(ACTIVE)
+  joinedAt    DateTime         @default(now())
+
+  classroom Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  student   User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classroomId, studentId])
+  @@index([studentId])
+}
+
+/// One finished mission, copied from the engine's MissionSummary. The server stores it; it never computes it.
+model MissionRun {
+  id             String     @id @default(cuid())
+  userId         String
+  scenarioId     String
+  outcome        RunOutcome
+  finalHour      Int
+  durationHours  Int
+  minBatteryKwh  Float
+  minWaterLiters Float
+  minOxygenKg    Float
+  scienceScore   Int
+  failureKind    String?
+  failureReason  String?
+  decisions      Int
+  /// Learning ratings from assessLearning(), when the training model was active.
+  skills         Json?
+  createdAt      DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 /// Opaque session: the cookie holds a random token, only its SHA-256 hash is stored.

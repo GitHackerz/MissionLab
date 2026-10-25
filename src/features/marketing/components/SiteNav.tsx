@@ -38,8 +38,8 @@ export function SiteNav({ user }: { user: SessionUser | null }) {
                   Log out
                 </button>
               </form>
-              <Link href="/mission" className="btn-primary min-h-10 px-4 text-sm">
-                Mission control
+              <Link href={user.role === 'TEACHER' ? '/teacher' : '/dashboard'} className="btn-primary min-h-10 px-4 text-sm">
+                {user.role === 'TEACHER' ? 'Teacher dashboard' : 'My dashboard'}
               </Link>
             </>
           ) : (

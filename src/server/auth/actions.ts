@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { prisma } from '@/server/db';
 import { sendPasswordResetEmail, sendVerificationEmail } from '@/server/mail';
 import { hashPassword, verifyPassword } from './crypto';
-import { createSession, destroySession, getCurrentUser } from './session';
+import { createSession, destroySession, getCurrentUser, homePathFor } from './session';
 import { consumeToken, issueToken } from './tokens';
 
 export interface FormState {
@@ -86,7 +86,7 @@ export async function logIn(_prev: FormState, formData: FormData): Promise<FormS
 
   await createSession(user.id);
   if (!user.emailVerifiedAt) redirect(`/verify-email?email=${encodeURIComponent(user.email)}`);
-  redirect(user.onboardedAt ? '/mission' : '/welcome');
+  redirect(homePathFor(user));
 }
 
 export async function resendVerification(_prev: FormState, _formData: FormData): Promise<FormState> {
@@ -133,7 +133,7 @@ export async function resetPassword(_prev: FormState, formData: FormData): Promi
   });
   await prisma.session.deleteMany({ where: { userId } });
   await createSession(userId);
-  redirect(user.onboardedAt ? '/mission' : '/welcome');
+  redirect(homePathFor(user));
 }
 
 export async function completeOnboarding(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -146,7 +146,7 @@ export async function completeOnboarding(_prev: FormState, formData: FormData): 
     where: { id: user.id },
     data: { role: parsed.data.role, onboardedAt: new Date() },
   });
-  redirect('/mission?tour=1');
+  redirect(parsed.data.role === 'TEACHER' ? '/teacher' : '/mission?tour=1');
 }
 
 export async function logOut(): Promise<void> {
