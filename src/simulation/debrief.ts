@@ -1,4 +1,5 @@
 import type { BranchComparison, MissionBranch, MissionSnapshot, MissionSummary } from './types';
+import { getAtmosphericSummary } from './missions/debrief';
 import { getMissionConfig } from './config';
 
 export function getMissionSummary(history: MissionSnapshot[]): MissionSummary {
@@ -6,11 +7,11 @@ export function getMissionSummary(history: MissionSnapshot[]): MissionSummary {
   const state = history.at(-1)!.state;
   const config = getMissionConfig(state);
   const minimum = (key: 'batteryKwh' | 'waterLiters' | 'oxygenKg') => Math.min(...history.map(s => s.state.resources[key]));
-  const keyDecisions = history.filter(s => s.actionTaken && ['SET_ENABLED', 'REPAIR_WATER_RECYCLER'].includes(s.actionTaken.type))
+  const keyDecisions = history.filter(s => s.actionTaken && !['ADVANCE_TIME','ADVANCE_MINUTES','RESET_MISSION','REWIND_TO','SET_LEARNING_MODE'].includes(s.actionTaken.type))
     .map(s => ({ hour: s.hour, action: JSON.stringify(s.actionTaken),
       impact: s.state.events.at(-1)?.message ?? 'Recorded player decision.' }));
   const evidence = new Set(state.failure?.causeIds ?? []);
-  const significantEvents = state.events.filter(e => e.severity !== 'info' || evidence.has(e.id)
+  const significantEvents = state.events.filter(e => e.severity !== 'info' || evidence.has(e.id) || e.type.startsWith('EMERGENCY_')
     || ['MODULE_ENABLED', 'MODULE_SUSPENDED', 'REPAIR_COMMENCED', 'REPAIR_COMPLETED', 'MISSION_ACCOMPLISHED'].includes(e.type));
   const explanations: string[] = [];
   if (state.events.some(e => e.type === 'DUST_STORM_ARRIVAL')) {
@@ -21,6 +22,14 @@ export function getMissionSummary(history: MissionSnapshot[]): MissionSummary {
   if (state.failure?.kind === 'water') explanations.push(`Recorded water reserve crossed the terminal safety limit of ${config.waterSafetyThresholdLiters} L.`);
   if (state.failure?.kind === 'oxygen') explanations.push(`Recorded oxygen reserve crossed the terminal safety limit of ${config.oxygenSafetyThresholdKg} kg.`);
   explanations.push(`Fully powered operational life support produces up to ${config.normalOxygenGenKgPerHour} kg/h oxygen and consumes ${config.oxygenProcessWaterLitersPerKg ?? 1.125} L process water per kg, after crew hydration.`);
+  if (state.emergency) {
+    explanations.length=0;
+    const a=getAtmosphericSummary(history);
+    explanations.push(`Atmosphere uses conserved gas inventories at fixed temperature. Minimum occupied pressure ${a.minimumPressureKpa.toFixed(2)} kPa; maximum CO₂ ${a.maximumCo2Ppm.toFixed(0)} ppm.`,
+      `Measured gas losses ${a.gasLostMol.toFixed(2)} mol include ${a.oxygenLostMol.toFixed(2)} mol cabin oxygen. Stored oxygen is a separate inventory.`,
+      `Actual CO₂ removed: ${a.co2RemovedMol.toFixed(2)} mol. Verification ${a.verified?'passed':'has not passed'}.`);
+    if(a.rootCause) explanations.push(`Recorded root cause: ${a.rootCause}.`);
+  }
   return {
     scenarioId: state.scenarioId, branchId: state.branchId, finalHour: state.hour, durationHours: state.durationHours,
     status: state.status, finalResources: structuredClone(state.resources), minBatteryKwh: minimum('batteryKwh'),

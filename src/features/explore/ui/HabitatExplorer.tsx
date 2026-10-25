@@ -1,12 +1,17 @@
 'use client';
 
+import { AtmosphereWorkbench } from '@/features/mission-ui/components/atmosphere/AtmosphereWorkbench';
+import { EmergencyTelemetry } from '@/features/mission-ui/components/atmosphere/EmergencyTelemetry';
+import { FankouchCompanion } from '@/features/mission-ui/components/atmosphere/FankouchCompanion';
+import { getMissionConfig } from '@/simulation/config';
+import { getMission } from '@/simulation/missions/registry';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Gamepad2, LogOut, Zap, Droplets, Wind, ClipboardList, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import { useMissionStore } from '@/state/missionStore';
 import { useExploreStore } from '../store';
 import { useGameInput } from '../input/useGameInput';
 import { ExploreScene } from '../ExploreScene';
-import { INTERACTABLES, ROOMS, TaskId } from '../world/layout';
+import { INTERACTABLES, missionInteractables, ROOMS, TaskId } from '../world/layout';
 import { useDialogFocus } from './useDialogFocus';
 import { TaskShell } from './TaskShell';
 import { CrewTask, GreenhouseTask, MissionTask, ModuleInfoTask } from './tasks/InfoTasks';
@@ -110,9 +115,11 @@ export const HabitatExplorer: React.FC<{ onTrainingMenu?: () => void }> = ({ onT
     if (unavailable && (mode === 'transitioning')) useExploreStore.getState().finishTransition();
   }, [unavailable, mode]);
 
-  const nearby = INTERACTABLES.find((i) => i.id === nearbyId) ?? null;
+  const interactables = missionInteractables(mission.scenarioId);
+  const nearby = interactables.find((i) => i.id === nearbyId) ?? null;
   const guide = getGuidance(mission);
   const r = mission.resources;
+  const config = getMissionConfig(mission);
   const objective = getPlayerObjective(mission, room);
   const objectives = getObjectives(mission);
   const roomPower = room ? getRoomPower(mission, room) : null;
@@ -148,7 +155,7 @@ export const HabitatExplorer: React.FC<{ onTrainingMenu?: () => void }> = ({ onT
           <p className="text-sm font-semibold uppercase tracking-wider text-orange-400">3D habitat unavailable</p>
           <p className="max-w-md text-xs text-stone-400">WebGL is not available. You can still reach every activity from this list, or go back to the colony view.</p>
           <ul className="grid w-full max-w-md gap-2 sm:grid-cols-2">
-            {INTERACTABLES.map((i) => (
+            {interactables.map((i) => (
               <li key={i.id}>
                 <button type="button" className="w-full rounded border border-mars-border bg-black/40 px-3 py-2 text-left text-sm hover:border-mars-dust" onClick={() => { const st = useExploreStore.getState(); st.setNearby(i.id); if (st.beginTask(i.id, i.taskId)) st.finishTransition(); }}>
                   {i.label}
@@ -164,13 +171,13 @@ export const HabitatExplorer: React.FC<{ onTrainingMenu?: () => void }> = ({ onT
         <>
           <header className="pointer-events-none absolute left-4 right-4 top-12 flex flex-wrap items-start justify-between gap-3 sm:left-7 sm:right-7 lg:top-6">
             <div className="game-surface px-4 py-3">
-              <div className="font-mono text-[10px] uppercase tracking-[.2em] text-orange-300">Mission 01 / Ares station</div>
-              <h1 className="mt-1 text-lg font-semibold tracking-tight">The Red Storm <span className="ml-3 font-mono text-xs font-normal text-stone-400">{mission.hour.toFixed(1)} / {mission.durationHours} h</span></h1>
+              <div className="font-mono text-[10px] uppercase tracking-[.2em] text-orange-300">Mission {getMission(mission.scenarioId).number} / Ares station</div>
+              <h1 className="mt-1 text-lg font-semibold tracking-tight">{getMission(mission.scenarioId).title} <span className="ml-3 font-mono text-xs font-normal text-stone-400">{mission.hour.toFixed(1)} / {mission.durationHours} h</span></h1>
             </div>
-            <div className="game-surface flex flex-wrap items-center gap-3 px-3 py-3 pointer-events-auto">
-              <Chip icon={<Zap className="h-4 w-4 text-amber-300" aria-hidden />} label="Battery" value={`${r.batteryKwh.toFixed(0)} kWh`} low={r.batteryKwh < 15} />
-              <Chip icon={<Droplets className="h-4 w-4 text-cyan-300" aria-hidden />} label="Water" value={`${r.waterLiters.toFixed(1)} L`} low={r.waterLiters < 14} />
-              <Chip icon={<Wind className="h-4 w-4 text-sky-300" aria-hidden />} label="Oxygen" value={`${r.oxygenKg.toFixed(1)} kg`} low={r.oxygenKg < 1.5} />
+            <div className="game-surface pointer-events-auto flex flex-wrap items-center gap-3 px-3 py-3">
+              <Chip icon={<Zap className="h-4 w-4 text-amber-300" aria-hidden />} label="Battery" value={`${r.batteryKwh.toFixed(0)} kWh`} low={r.batteryKwh <= config.batterySafetyThresholdKwh} />
+              <Chip icon={<Droplets className="h-4 w-4 text-cyan-300" aria-hidden />} label="Water" value={`${r.waterLiters.toFixed(1)} L`} low={r.waterLiters <= config.waterSafetyThresholdLiters} />
+              <Chip icon={<Wind className="h-4 w-4 text-sky-300" aria-hidden />} label="Oxygen" value={`${r.oxygenKg.toFixed(1)} kg`} low={r.oxygenKg <= config.oxygenSafetyThresholdKg} />
               <button
                 type="button"
                 onClick={handleToggleSound}
@@ -184,10 +191,10 @@ export const HabitatExplorer: React.FC<{ onTrainingMenu?: () => void }> = ({ onT
           </header>
           <aside className="pointer-events-auto absolute left-4 top-52 w-[min(20rem,calc(100vw-2rem))] sm:left-7 sm:top-36 lg:top-28">
             <div className="game-surface border-l-2 border-l-orange-300 px-4 py-3">
-              <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-orange-300"><span>{concluded ? 'Mission concluded' : 'Current objective'}</span><span>{mission.training?.mode ?? 'cadet'}</span></div>
+              <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-orange-300"><span>{concluded ? 'Mission concluded' : 'Current objective'}</span><span>{mission.emergency?.mode ?? mission.training?.mode ?? 'cadet'}</span></div>
               <h2 className="mt-2 text-base font-semibold">{objective.title}</h2><p className="mt-2 hidden text-sm leading-relaxed text-stone-300 sm:block">{objective.detail}</p>
               <div className="mt-3 border-t border-white/10 pt-2 text-xs text-sky-200">{objective.destination}</div>
-              {objective.wait && <div className="mt-3 flex items-center gap-2"><span className="text-xs text-stone-400">Wait</span><button type="button" disabled={mode !== 'exploration'} onClick={() => { soundManager.playClick(); advanceTime(1); }} className="game-button">+1h</button><button type="button" disabled={mode !== 'exploration'} onClick={() => { soundManager.playClick(); advanceTime(6); }} className="game-button">+6h</button></div>}
+              {objective.wait && <div className="mt-3 flex items-center gap-2"><span className="text-xs text-stone-400">Wait</span><button type="button" disabled={mode !== 'exploration'} onClick={() => { soundManager.playClick(); if (mission.emergency) applyAction({ type: 'ADVANCE_MINUTES', minutes: 1 }); else advanceTime(1); }} className="game-button">{mission.emergency ? '+1m' : '+1h'}</button><button type="button" disabled={mode !== 'exploration'} onClick={() => { soundManager.playClick(); if (mission.emergency) applyAction({ type: 'ADVANCE_MINUTES', minutes: 5 }); else advanceTime(6); }} className="game-button">{mission.emergency ? '+5m' : '+6h'}</button></div>}
               {concluded && <button type="button" className="game-button mt-3 w-full" onClick={() => { soundManager.playClick(); useExploreStore.getState().openDebrief(); }}>Review Mission Autopsy</button>}
             </div>
             {mission.stormActive && <div className="mt-2 px-1 font-mono text-[10px] uppercase tracking-wider text-amber-200">▲ Dust storm / reduced solar generation</div>}
@@ -222,7 +229,7 @@ export const HabitatExplorer: React.FC<{ onTrainingMenu?: () => void }> = ({ onT
 
                 <button className="game-button block w-full" onClick={() => { soundManager.playClick(); useExploreStore.getState().togglePause(); }}>Resume exploration</button>
                 <button className="game-button flex w-full items-center justify-center gap-2" onClick={() => { soundManager.playClick(); useExploreStore.getState().openDebrief(); }}><ClipboardList size={14} />Mission Autopsy</button>
-                <details className="border-t border-white/10 pt-3"><summary className="cursor-pointer text-xs text-stone-300">Wait / advance mission time</summary><p className="mt-2 text-xs text-stone-400">Waiting runs the simulation with your current decisions. Check resources and equipment before continuing.</p><div className="mt-2 flex gap-2"><button className="game-button" disabled={concluded} onClick={() => { soundManager.playClick(); advanceTime(1); useExploreStore.getState().togglePause(); }}>Wait +1h</button><button className="game-button" disabled={concluded} onClick={() => { soundManager.playClick(); advanceTime(6); useExploreStore.getState().togglePause(); }}>Wait +6h</button></div></details>
+                <details className="border-t border-white/10 pt-3"><summary className="cursor-pointer text-xs text-stone-300">Wait / advance mission time</summary><p className="mt-2 text-xs text-stone-400">Waiting runs the simulation with your current decisions. Check resources and equipment before continuing.</p><div className="mt-2 flex gap-2"><button className="game-button" disabled={concluded} onClick={() => { soundManager.playClick(); if (mission.emergency) applyAction({ type: 'ADVANCE_MINUTES', minutes: 1 }); else advanceTime(1); useExploreStore.getState().togglePause(); }}>{mission.emergency ? 'Wait +1 min' : 'Wait +1h'}</button><button className="game-button" disabled={concluded} onClick={() => { soundManager.playClick(); if (mission.emergency) applyAction({ type: 'ADVANCE_MINUTES', minutes: 5 }); else advanceTime(6); useExploreStore.getState().togglePause(); }}>{mission.emergency ? 'Wait +5 min' : 'Wait +6h'}</button></div></details>
                 <button className="game-button flex w-full items-center justify-center gap-2" onClick={() => { soundManager.playClick(); useExploreStore.getState().exitHabitat(); }}><LogOut size={14} />Colony Overview</button>
                 {onTrainingMenu && <button type="button" className="game-button block w-full" onClick={() => { soundManager.playClick(); onTrainingMenu(); }}>Training menu · keep this attempt</button>}
 
@@ -285,21 +292,22 @@ export const HabitatExplorer: React.FC<{ onTrainingMenu?: () => void }> = ({ onT
               <ol className="space-y-3">{objectives.map((item, index) => <li key={item.id} className="flex items-start gap-3 border-t border-white/10 pt-3"><span className="font-mono text-sky-200">0{index + 1}</span><div><div className="text-sm text-stone-100">{item.title}</div><p className="mt-1 text-xs text-stone-400">{item.destination} · <span className={item.status === 'completed' ? 'text-emerald-200' : item.status === 'retry' || item.status === 'failed' ? 'text-amber-200' : 'text-sky-200'}>{item.status}</span></p></div></li>)}</ol>
               {guide.hint && <p className="mt-2 text-amber-200"><span className="font-semibold">Hint: </span>{guide.hint}</p>}
               {guide.concept && <p className="mt-2 text-sky-200"><span className="font-semibold">Science: </span>{guide.concept}</p>}
-              <p className="mt-2 text-stone-400">Keep four crew safe for 72 hours. Explore the rooms: Mission Control (north), Power Room (east), Life Support (west), Greenhouse (south).</p>
+              <p className="mt-2 text-stone-400">Keep four crew safe and complete the selected mission’s verification requirements. Explore the rooms: Mission Control (north), Power Room (east), Life Support (west), Greenhouse (south).</p>
             </div>
           )}
         </>
       )}
 
+      {mission.emergency && mode !== 'paused' && mode !== 'debrief' && <div className="absolute bottom-20 left-3 right-3 z-20 max-h-40 overflow-auto pointer-events-auto sm:right-auto sm:w-[28rem]"><EmergencyTelemetry compact/>{mode==='exploration'&&<FankouchCompanion/>}</div>}
       {/* Focused task surface */}
       {mode === 'task' && taskId && (
-        <TaskShell showWorkflow={taskId !== 'water-recycler'} title={TASK_META[taskId].title} subtitle={TASK_META[taskId].subtitle} layout={TASK_META[taskId].layout} onClose={() => useExploreStore.getState().endTask()}>
-          {taskId === 'water-recycler' && <TrainingPanel embedded />}
+        <TaskShell showWorkflow={taskId !== 'water-recycler'} title={mission.emergency&&(taskId==='crew-terminal'||taskId==='air-unit')?'Atmospheric engineering console':TASK_META[taskId].title} subtitle={mission.emergency&&(taskId==='crew-terminal'||taskId==='air-unit')?getMission(mission.scenarioId).destination:TASK_META[taskId].subtitle} layout={TASK_META[taskId].layout} onClose={() => useExploreStore.getState().endTask()}>
+          {taskId === 'water-recycler' && (mission.emergency ? <ModuleInfoTask moduleId="water-recycler"/> : <TrainingPanel embedded />)}
           {taskId === 'power-console' && <PowerTask />}
           {taskId === 'mission-console' && <MissionTask onOpenDebrief={() => { useExploreStore.getState().openDebrief(); }} />}
           {taskId === 'greenhouse-station' && <GreenhouseTask />}
-          {taskId === 'crew-terminal' && <CrewTask />}
-          {taskId === 'air-unit' && <ModuleInfoTask moduleId="life-support" />}
+          {taskId === 'crew-terminal' && (mission.emergency ? <AtmosphereWorkbench /> : <CrewTask />)}
+          {taskId === 'air-unit' && (mission.emergency ? <AtmosphereWorkbench /> : <ModuleInfoTask moduleId="life-support" />)}
         </TaskShell>
       )}
 

@@ -25,8 +25,8 @@ async function pausedClassName(userId: string): Promise<string | null> {
   }
 }
 
-export default async function MissionPage({ searchParams }: { searchParams: Promise<{ tour?: string }> }) {
-  const [{ tour }, user, jar] = await Promise.all([searchParams, getCurrentUser(), cookies()]);
+export default async function MissionPage({ searchParams }: { searchParams: Promise<{ tour?: string; m?: string }> }) {
+  const [{ tour, m }, user, jar] = await Promise.all([searchParams, getCurrentUser(), cookies()]);
 
   if (user && user.role !== 'TEACHER') {
     const paused = await pausedClassName(user.id);
@@ -74,7 +74,7 @@ export default async function MissionPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <MissionWorkspace account={account} startTour={tour === '1'} />
+      <MissionWorkspace account={account} startTour={tour === '1'} initialMissionId={m} />
       {user && user.role !== 'TEACHER' && <MissionResultRecorder />}
     </>
   );

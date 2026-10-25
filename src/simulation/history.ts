@@ -1,5 +1,6 @@
 import type { MissionBranch, MissionSnapshot, MissionState, MissionAction, ActionResult } from './types';
 import { advanceMissionSteps, applyMissionAction } from './engine';
+import { advanceEmergencySteps } from './missions/emergency';
 import { isTrainingAction, validateAction } from './actions';
 
 /** timestamp is a logical event sequence, never a wall clock. */
@@ -32,15 +33,22 @@ export function forkMission(history: MissionSnapshot[], snapshotId: string, bran
 export function recordMissionAction(state: MissionState, history: MissionSnapshot[], action: MissionAction):
   { result: ActionResult; history: MissionSnapshot[] } {
   // Training actions validate themselves and log rejections as learning evidence.
-  const validation = isTrainingAction(action) ? { valid: true as const, reason: undefined } : validateAction(state, action);
+  const validation = action.type === 'EMERGENCY_ACTION' || action.type === 'ADVANCE_MINUTES' || isTrainingAction(action) ? { valid: true as const, reason: undefined } : validateAction(state, action);
   if (!validation.valid) return { result: { ok: false, reason: validation.reason ?? 'Invalid action.', state }, history };
+  if (action.type === 'ADVANCE_MINUTES') {
+    const check = applyMissionAction(state, action);
+    if (!check.ok) return { result: check, history };
+    const steps = advanceEmergencySteps(state, action.minutes);
+    return { result: check, history: [...history, ...steps.map(s => createSnapshot(s, { type: 'ADVANCE_MINUTES', minutes: 1 }))] };
+  }
   if (action.type === 'ADVANCE_TIME') {
     const steps = advanceMissionSteps(state, action.hours);
     return { result: { ok: true, state: steps.at(-1) ?? structuredClone(state) },
-      history: [...history, ...steps.map(s => createSnapshot(s, { type: 'ADVANCE_TIME', hours: 1 }))] };
+      history: [...history, ...steps.map(s => createSnapshot(s, s.emergency ? { type: 'ADVANCE_MINUTES', minutes: 1 } : { type: 'ADVANCE_TIME', hours: 1 }))] };
   }
   const result = applyMissionAction(state, action);
   if (!result.ok) return { result, history };
+  if (result.decisionState) return { result, history: [...history, createSnapshot(result.decisionState, action), ...(result.transitions ?? []).map(s => createSnapshot(s, { type: 'ADVANCE_MINUTES', minutes: 1 }))] };
   return { result, history: action.type === 'RESET_MISSION' ? [createSnapshot(result.state, action)]
     : [...history, createSnapshot(result.state, action)] };
 }

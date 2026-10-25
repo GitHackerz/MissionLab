@@ -191,3 +191,11 @@ export function roomAt(x: number, z: number): RoomId | null {
   for (const [id, r] of ROOM_LIST) if (x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ) return id;
   return null;
 }
+
+/** Stable interaction IDs keep navigation compatible; display labels describe the selected mission's equipment. */
+export function missionInteractables(scenarioId: string): WorldInteractable[] {
+  return INTERACTABLES.map(item=>scenarioId==='mission-02-pressure-drop'&&item.id==='crew-terminal'
+    ? {...item,label:'Atmospheric Control Console',verb:'Investigate pressure',description:'Compartment gauges, isolation valves and sealed maintenance access.'}
+    : scenarioId==='mission-03-silent-air'&&item.id==='air-unit'
+    ? {...item,label:'Air Treatment Console',verb:'Investigate cabin air',description:'Ventilation, scrubber and independent gas diagnostics.'}:item);
+}

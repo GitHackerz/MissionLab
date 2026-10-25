@@ -1,10 +1,11 @@
 'use client';
 
+import { AtmosphereEquipment } from './AtmosphereEquipment';
 import React, { MutableRefObject, useMemo } from 'react';
 import { MissionState, ModuleId } from '@/simulation/types';
 import type { RecyclerComponentId } from '@/simulation/training/types';
 import { actionForHotspot, nextHintKey, ServiceHotspot } from '../utils/serviceInteractions';
-import type { TrainingAction } from '@/simulation/types';
+import type { MissionAction } from '@/simulation/types';
 import { getRenderableModules } from '../utils/visualState';
 import { Infrastructure } from './Infrastructure';
 import { BatteryBank } from '../modules/BatteryBank';
@@ -35,7 +36,7 @@ interface ColonyLayoutProps {
   onFocusModule: (id: ModuleId) => void;
   serviceActive: boolean;
   selectedComponentId: RecyclerComponentId | null;
-  onTrainingAction?: (action: TrainingAction) => void;
+  onTrainingAction?: (action: MissionAction) => void;
   onSelectComponent?: (id: RecyclerComponentId) => void;
 }
 
@@ -87,6 +88,7 @@ export const ColonyLayout: React.FC<ColonyLayoutProps> = ({
           />
         );
       })}
+      {missionState.emergency && <AtmosphereEquipment state={missionState} position={[0,0,6]} reducedMotion={reducedMotion} onAction={command=>onTrainingAction?.({type:'EMERGENCY_ACTION',command})} />}
       <Infrastructure modules={missionState.modules} reducedMotion={reducedMotion} stormRef={stormRef} />
     </group>
   );

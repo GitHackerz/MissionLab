@@ -1,0 +1,211 @@
+{
+  "environment": {
+    "browser": "Chromium 155.0.8059.84",
+    "desktopViewport": [
+      1440,
+      1000
+    ],
+    "mobileViewport": [
+      390,
+      844
+    ],
+    "reducedMotion": true,
+    "renderer": "SwiftShader",
+    "baseUrl": "http://localhost:3012"
+  },
+  "passingJourneys": 10,
+  "browserPageAndConsoleErrors": 0,
+  "broadJourneyResults": [
+    {
+      "name": "pressure-success",
+      "scenarioId": "mission-02-pressure-drop",
+      "status": "success",
+      "minute": 20,
+      "hour": 0.3333333333333333,
+      "batteryKwh": 111.59999999999997,
+      "waterLiters": 34.92077333333327,
+      "oxygenKg": 4.953280000000007,
+      "gasLostMol": 316.93834183209896,
+      "verified": true,
+      "co2RemovedMol": 2.4000000000000012,
+      "branches": 0
+    },
+    {
+      "name": "pressure-failure",
+      "scenarioId": "mission-02-pressure-drop",
+      "status": "failed",
+      "minute": 55,
+      "hour": 0.9166666666666666,
+      "batteryKwh": 114.3999999999999,
+      "waterLiters": 34.7821266666665,
+      "oxygenKg": 4.871520000000018,
+      "failure": "oxygen",
+      "gasLostMol": 1623.563487814589,
+      "co2RemovedMol": 6.600000000000005,
+      "branches": 0
+    },
+    {
+      "name": "pressure-rewind-success",
+      "scenarioId": "mission-02-pressure-drop",
+      "status": "success",
+      "minute": 20,
+      "hour": 0.3333333333333333,
+      "batteryKwh": 111.59999999999997,
+      "waterLiters": 34.92077333333327,
+      "oxygenKg": 4.953280000000007,
+      "gasLostMol": 316.93834183209896,
+      "verified": true,
+      "co2RemovedMol": 2.4000000000000012,
+      "branches": 1
+    },
+    {
+      "name": "air-success",
+      "scenarioId": "mission-03-silent-air",
+      "status": "success",
+      "minute": 43,
+      "hour": 0.7166666666666667,
+      "batteryKwh": 113.61333333333329,
+      "waterLiters": 34.829662666666536,
+      "oxygenKg": 4.899552000000014,
+      "gasLostMol": 0,
+      "verified": true,
+      "co2RemovedMol": 3.120000000000002,
+      "branches": 0
+    },
+    {
+      "name": "air-failure",
+      "scenarioId": "mission-03-silent-air",
+      "status": "failed",
+      "minute": 248,
+      "hour": 4.133333333333334,
+      "batteryKwh": 129.8399999999999,
+      "waterLiters": 34.01758933333258,
+      "oxygenKg": 4.420672000000081,
+      "failure": "co2",
+      "gasLostMol": 0,
+      "co2RemovedMol": 1.8000000000000007,
+      "branches": 0
+    },
+    {
+      "name": "air-rewind-success",
+      "scenarioId": "mission-03-silent-air",
+      "status": "success",
+      "minute": 43,
+      "hour": 0.7166666666666667,
+      "batteryKwh": 113.61333333333329,
+      "waterLiters": 34.829662666666536,
+      "oxygenKg": 4.899552000000014,
+      "gasLostMol": 0,
+      "verified": true,
+      "co2RemovedMol": 3.120000000000002,
+      "branches": 1
+    },
+    {
+      "name": "air-wrong-repair",
+      "scenarioId": "mission-03-silent-air",
+      "status": "failed",
+      "minute": 248,
+      "hour": 4.133333333333334,
+      "batteryKwh": 130.0133333333333,
+      "waterLiters": 34.01758933333258,
+      "oxygenKg": 4.420672000000081,
+      "failure": "co2",
+      "gasLostMol": 0,
+      "verified": false,
+      "co2RemovedMol": 1.8000000000000007,
+      "branches": 0
+    },
+    {
+      "name": "mission-resume",
+      "scenarioId": "mission-02-pressure-drop",
+      "status": "running",
+      "minute": 2,
+      "hour": 0.03333333333333333,
+      "batteryKwh": 110.16,
+      "waterLiters": 34.99207733333333,
+      "oxygenKg": 4.995328000000001,
+      "gasLostMol": 69.81333918323669,
+      "co2RemovedMol": 0.24,
+      "branches": 0
+    },
+    {
+      "name": "pressure-mobile-sensor",
+      "scenarioId": "mission-02-pressure-drop",
+      "status": "success",
+      "minute": 11,
+      "hour": 0.18333333333333332,
+      "batteryKwh": 110.87999999999998,
+      "waterLiters": 34.9564253333333,
+      "oxygenKg": 4.974304000000004,
+      "gasLostMol": 0,
+      "verified": true,
+      "co2RemovedMol": 1.3200000000000003,
+      "branches": 0
+    },
+    {
+      "name": "red-storm-energy",
+      "scenarioId": "mission-01-red-storm",
+      "status": "failed",
+      "hour": 26,
+      "batteryKwh": 0,
+      "waterLiters": 27.82000000000005,
+      "oxygenKg": 5.520000000000012,
+      "failure": "power",
+      "branches": 0
+    },
+    {
+      "name": "red-storm-success",
+      "scenarioId": "mission-01-red-storm",
+      "status": "success",
+      "hour": 72,
+      "batteryKwh": 81.19999999999959,
+      "waterLiters": 15.860000000000142,
+      "oxygenKg": 6.440000000000033,
+      "branches": 0
+    },
+    {
+      "name": "pressure-no-webgl",
+      "scenarioId": "mission-02-pressure-drop",
+      "status": "success",
+      "minute": 20,
+      "hour": 0.3333333333333333,
+      "batteryKwh": 111.59999999999997,
+      "waterLiters": 34.92077333333327,
+      "oxygenKg": 4.953280000000007,
+      "gasLostMol": 316.93834183209896,
+      "verified": true,
+      "co2RemovedMol": 2.4000000000000012,
+      "branches": 0
+    }
+  ],
+  "finalRepairSmoke": [
+    {
+      "name": "pressure-success",
+      "scenarioId": "mission-02-pressure-drop",
+      "status": "success",
+      "minute": 20,
+      "hour": 0.3333333333333333,
+      "batteryKwh": 111.59999999999997,
+      "waterLiters": 34.92077333333327,
+      "oxygenKg": 4.953280000000007,
+      "gasLostMol": 316.93834183209896,
+      "verified": true,
+      "co2RemovedMol": 2.4000000000000012,
+      "branches": 0
+    },
+    {
+      "name": "air-success",
+      "scenarioId": "mission-03-silent-air",
+      "status": "success",
+      "minute": 43,
+      "hour": 0.7166666666666667,
+      "batteryKwh": 113.61333333333329,
+      "waterLiters": 34.829662666666536,
+      "oxygenKg": 4.899552000000014,
+      "gasLostMol": 0,
+      "verified": true,
+      "co2RemovedMol": 3.120000000000002,
+      "branches": 0
+    }
+  ]
+}

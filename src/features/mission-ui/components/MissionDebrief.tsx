@@ -1,5 +1,6 @@
 'use client';
 
+import { AtmosphereDebrief } from './atmosphere/AtmosphereDebrief';
 import React, { useMemo } from 'react';
 import { History, Undo2, ScrollText } from 'lucide-react';
 import { useMissionStore } from '@/state/missionStore';
@@ -41,6 +42,7 @@ export const MissionDebrief: React.FC = () => {
   const nextExperiment = summary.rootCause?.kind === 'power' ? 'Compare the forecast after changing an optional electrical load. Keep essential air and heating supplied.' : summary.rootCause?.kind === 'water' ? 'Investigate the first low-recovery warning earlier. Compare independent readings before using a spare.' : summary.rootCause?.kind === 'oxygen' ? 'Check actual Life Support allocation and oxygen production before waiting again.' : 'Try keeping more scientific work active while preserving safe air, water and battery margins.';
   const concluded = missionState.status === 'success' || missionState.status === 'failed';
 
+  if (missionState.emergency) return <AtmosphereDebrief />;
   return (
     <div className="space-y-5 p-4 text-xs">
       <div>

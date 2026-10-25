@@ -26,3 +26,7 @@ See [16-IMPLEMENTATION-REPORT.md](16-IMPLEMENTATION-REPORT.md) for executed chec
 ## Playable Habitat Tests
 
 `src/features/explore/__tests__/core.test.ts` (collision, layout, targeting, task lifecycle) and `input-ui.test.tsx` (input handling, stuck-key prevention, listener cleanup, task surfaces and mission-state persistence without WebGL). Movement, camera and 3D task interaction were verified manually in a browser (Playwright); they are not part of CI.
+
+## Atmospheric expansion verification
+
+Additional suites cover gas-species conservation, pressure faults and isolation, separate oxygen/CO₂ balances, treatment power and consumables, all six new fault variants, genuine failures, wrong interventions, safe recovery, minute history, terminal rewind, mission-isolated saves, invalid/versioned save recovery, catalog/HUD routing, companion context and UI action validation. The repeatable Chromium runner is `scripts/browser-missions.mjs`; it requires an available Playwright installation and a running app. Final executed counts and browser limitations are in [20-MULTI-MISSION-EXPANSION.md](20-MULTI-MISSION-EXPANSION.md). Unit tests alone are not evidence of browser success.

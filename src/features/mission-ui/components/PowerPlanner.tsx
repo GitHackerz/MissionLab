@@ -7,9 +7,8 @@ import { forecastPlan } from '@/simulation/engine';
 import { PLAN_LOADS, currentPlan } from '@/simulation/training/power';
 import type { PlanLoadId } from '@/simulation/training/types';
 import { getRoomPower } from '@/features/explore/world/power';
-import { RED_STORM_CONFIG } from '@/simulation/config';
+import { getMissionConfig } from '@/simulation/config';
 import { soundManager } from '@/features/audio/soundManager';
-
 
 const CATEGORY: Record<string, string> = {
   critical: 'text-red-300 border-red-500/40 bg-red-950/40',
@@ -59,6 +58,7 @@ const PowerSchematic: React.FC<{ generationKw: number; demandKw: number; battery
 
 export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = false }) => {
   const { missionState, applyAction } = useMissionStore();
+  const config = getMissionConfig(missionState);
   const live = useMemo(() => currentPlan(missionState), [missionState]);
   const [draft, setDraft] = useState<Record<PlanLoadId, boolean> | null>(null);
   const plan = draft ?? live;
@@ -73,7 +73,7 @@ export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = fa
   const cap = missionState.resources.batteryCapacityKwh;
   const span = Math.max(1, forecast.samples.length - 1);
   const pts = forecast.samples.map((s, i) => `${(i / span) * W},${H - (s.batteryKwh / cap) * H}`).join(' ');
-  const reserveY = H - (RED_STORM_CONFIG.batterySafetyThresholdKwh / cap) * H;
+  const reserveY = H - (config.batterySafetyThresholdKwh / cap) * H;
 
   return (
     <div className="p-4 space-y-4 text-xs">
@@ -130,7 +130,7 @@ export const PowerPlanner: React.FC<{ schematic?: boolean }> = ({ schematic = fa
         </svg>
         <div className="mt-1 flex justify-between font-mono text-[10px] text-stone-500">
           <span>hour {forecast.samples[0]?.hour}</span>
-          <span className="text-red-400">dashed: {RED_STORM_CONFIG.batterySafetyThresholdKwh} kWh reserve</span>
+          <span className="text-red-400">dashed: {config.batterySafetyThresholdKwh} kWh reserve</span>
           <span>lowest {forecast.minBatteryKwh} kWh</span>
         </div>
       </div>

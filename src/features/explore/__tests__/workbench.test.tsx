@@ -108,15 +108,16 @@ describe('progressive recycler workbench', () => {
   });
 });
 describe('training entry', () => {
-  it('exposes only the available mission, explains guidance, and requires an explicit begin action', () => {
+  it('exposes the three registered missions, explains guidance, and requires an explicit begin action', () => {
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     const begin = vi.fn(); render(<MissionBriefing onStart={begin} />);
     fireEvent.click(screen.getByRole('button', { name: 'Start Training' }));
-    expect(screen.getByText(/Not playable yet/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('radio', { name: /^engineer/ }));
+    expect(screen.getByRole('button', {name:'Select Pressure Drop'})).toBeTruthy();
+    expect(screen.getByRole('button', {name:'Select Silent Air'})).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: 'engineer' }));
     fireEvent.click(screen.getByRole('button', { name: 'View briefing' }));
     expect(begin).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Begin Mission' }));
-    expect(begin).toHaveBeenCalledWith('engineer', 'habitat');
+    fireEvent.click(screen.getByRole('button', { name: 'Begin The Red Storm' }));
+    expect(begin).toHaveBeenCalledWith('engineer', 'colony', 'mission-01-red-storm');
   });
 });

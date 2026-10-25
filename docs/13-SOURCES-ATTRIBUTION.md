@@ -23,7 +23,7 @@ The governing concepts in MissionLab are derived from publicly available aerospa
 1. **NASA Environmental Control and Life Support Systems (ECLSS):**
    - Reference: National Aeronautics and Space Administration (NASA), *ECLSS Architecture and Human Exploration Requirements*.
    - URL: [https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/](https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/)
-   - *Application in MissionLab:* Sourced principles for human metabolic water consumption ($0.5\text{ L/h}$ per 4-person crew), oxygen respiration rates ($0.14\text{ kg/h}$), and vapor compression distillation recycling loops.
+   - *Application in MissionLab:* Supports the roles of water recovery, air revitalization and oxygen generation, including electrolysis using recovered water. The game’s 0.50 L/h crew water use and 0.14 kg/h oxygen use are educational calibration, not numerical requirements supplied by this page.
 
 2. **Martian Dust Storm Atmospheric Impact:**
    - Reference: NASA Mars Exploration Program, *The Fact and Fiction of Martian Dust Storms*.
@@ -76,3 +76,12 @@ Every third-party software library used in MissionLab is open-source and properl
 In strict compliance with LUMEN 2.0 Rules (Part III, Article 4):
 - **AI Coding Assistants:** Antigravity / Gemini was utilized as an architectural pair-programmer to scaffold TypeScript contracts, generate documentation blueprints, and format mathematical formulas.
 - **Team Verification:** Every line of generated code, equation, and interface contract has been reviewed, tested, and validated by the team engineers (Kammoun, Habib, Amina). The team can defend every algorithm and line of code during jury questioning.
+
+
+## Atmospheric expansion provenance (2026-10-25)
+
+- [NASA Glenn — Equation of State (Ideal Gas)](https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/equation-of-state-ideal-gas-2/): supports the relationship between gas quantity, absolute temperature, volume and pressure. `gas.ts` applies the molar form and tracks gas species so transfers conserve inventories.
+- [NASA — Environmental Control and Life Support Systems](https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/): supports separating ventilation, carbon-dioxide removal, oxygen generation, water recovery and pressure control. It does not establish MissionLab's safety limits or component ratings.
+- Gas constant: 0.008314462618 kPa·m³/(mol·K); oxygen mass conversion: 0.032 kg/mol, rounded educational molar mass. Pressure and mole fractions are derived from inventories, not sourced external telemetry.
+- Fictional calibration: 293.15 K fixed temperature, 120/30 m³ pressure compartments, 60 m³ air cabin, 75 kPa minimum pressure, 16 kPa minimum oxygen partial pressure, 6000 ppm maximum CO₂, recovery limits, conductances, procedure timing and consumable quantities. Rationale, independent balance checks, omissions and outcome values are in [20-MULTI-MISSION-EXPANSION.md](20-MULTI-MISSION-EXPANSION.md). None are represented as NASA-certified exposure or flight limits.
+- Visuals: existing Fankouch assets and original procedural Three.js/SVG/CSS schematics. The new CO₂ instruments are labeled measurements/schematics; no colored atmospheric CO₂ cloud is shown.

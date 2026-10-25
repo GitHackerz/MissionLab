@@ -1,10 +1,12 @@
 /**
- * Mission catalogue: the single list of missions teachers can assign and students can play.
+ * Mission catalogue for teachers and students (assignments, dashboards, history).
  *
- * `id` must equal the engine's `MissionConfig.scenarioId`, because finished runs are saved with that id
- * and matched back to assignments. To publish a new mission: build its config, add (or update) its entry
- * here and set `status: 'available'` with the route that starts it. See docs/19-MISSION-CATALOG.md.
+ * Playable missions come straight from the simulation's mission registry
+ * (src/simulation/missions/registry.ts): adding a mission there makes it assignable here automatically.
+ * `id` equals the engine's scenarioId, which is how finished runs are matched to assignments.
+ * Entries below the registry are announced as "coming soon" and can't be assigned or played.
  */
+import { MISSIONS as REGISTRY } from '@/simulation/missions/registry';
 
 export type MissionStatus = 'available' | 'coming-soon';
 
@@ -23,32 +25,28 @@ export interface MissionCatalogEntry {
   image: string;
 }
 
-export const MISSIONS: MissionCatalogEntry[] = [
+const PRESENTATION: Record<string, { image: string; minutes: number; concepts: string[] }> = {
+  'mission-01-red-storm': { image: '/mascot/fankouch-thinking.webp', minutes: 15, concepts: ['Power budgets', 'Energy storage', 'Water recycling', 'Fault diagnosis'] },
+  'mission-02-pressure-drop': { image: '/mascot/fankouch-surprised.webp', minutes: 15, concepts: ['Ideal gas law', 'Compartment isolation', 'Sensor evidence'] },
+  'mission-03-silent-air': { image: '/mascot/fankouch-exploring.webp', minutes: 20, concepts: ['CO₂ removal', 'Ventilation', 'Instrument drift'] },
+};
+
+const PLAYABLE: MissionCatalogEntry[] = REGISTRY.map((m) => ({
+  id: m.id,
+  number: m.number,
+  title: m.title,
+  summary: m.briefing,
+  concepts: PRESENTATION[m.id]?.concepts ?? [],
+  minutes: PRESENTATION[m.id]?.minutes ?? 15,
+  status: 'available',
+  href: `/mission?m=${m.id}`,
+  image: PRESENTATION[m.id]?.image ?? '/mascot/fankouch-thinking.webp',
+}));
+
+const COMING_SOON: MissionCatalogEntry[] = [
   {
-    id: 'mission-01-red-storm',
-    number: '01',
-    title: 'The Red Storm',
-    summary: 'A dust storm cuts solar power to 4 kW and the water recycler fails. Keep four crew safe for 72 hours.',
-    concepts: ['Power budgets', 'Energy storage', 'Water recycling', 'Fault diagnosis'],
-    minutes: 15,
-    status: 'available',
-    href: '/mission',
-    image: '/mascot/fankouch-thinking.webp',
-  },
-  {
-    id: 'mission-02-eclss-cascade',
-    number: '02',
-    title: 'Atmospheric Cascade',
-    summary: 'The CO₂ reduction reactor fails. Carbon dioxide rises while oxygen generation is constrained.',
-    concepts: ['Partial pressure', 'CO₂ scrubbing', 'Chemical reactions'],
-    minutes: 15,
-    status: 'coming-soon',
-    href: '/mission',
-    image: '/mascot/fankouch-surprised.webp',
-  },
-  {
-    id: 'mission-03-solar-proton-event',
-    number: '03',
+    id: 'mission-04-solar-proton-event',
+    number: '04',
     title: 'The Solar Proton Event',
     summary: 'A solar particle storm sends the crew to the shelter while systems must keep running remotely.',
     concepts: ['Radiation shielding', 'Remote operations', 'Load shedding'],
@@ -58,19 +56,19 @@ export const MISSIONS: MissionCatalogEntry[] = [
     image: '/mascot/fankouch-working.webp',
   },
   {
-    id: 'mission-04-hydroponic-crash',
-    number: '04',
+    id: 'mission-05-hydroponic-crash',
+    number: '05',
     title: 'Hydroponic Nitrogen Crash',
     summary: 'The greenhouse biofilter crashes and crops start to fail, threatening future food supplies.',
     concepts: ['Nitrogen cycle', 'Closed ecosystems', 'Biological buffers'],
     minutes: 15,
     status: 'coming-soon',
     href: '/mission',
-    image: '/mascot/fankouch-exploring.webp',
+    image: '/mascot/fankouch-sad.webp',
   },
   {
-    id: 'mission-05-comms-blackout',
-    number: '05',
+    id: 'mission-06-comms-blackout',
+    number: '06',
     title: 'Earth Blackout',
     summary: 'Solar conjunction blocks contact with Earth for 14 days. Every decision is yours.',
     concepts: ['Autonomy', 'Delayed feedback', 'Contingency reserves'],
@@ -80,6 +78,8 @@ export const MISSIONS: MissionCatalogEntry[] = [
     image: '/mascot/fankouch-flying.webp',
   },
 ];
+
+export const MISSIONS: MissionCatalogEntry[] = [...PLAYABLE, ...COMING_SOON];
 
 export const AVAILABLE_MISSIONS = MISSIONS.filter((m) => m.status === 'available');
 

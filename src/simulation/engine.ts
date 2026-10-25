@@ -1,3 +1,6 @@
+import { getMission, RED_STORM_ID } from './missions/registry';
+import { initializeEmergency, advanceEmergencySteps, applyEmergencyCommand } from './missions/emergency';
+import type { MissionId, FaultId } from './missions/types';
 import type { ActionResult, MissionAction, MissionConfig, MissionState, ModuleId } from './types';
 import { RED_STORM_CONFIG, INITIAL_MODULES, getMissionConfig, validateConfig } from './config';
 import { getAvailableActions, validateAction } from './actions';
@@ -34,6 +37,13 @@ export function createTrainingMission(config: MissionConfig = RED_STORM_CONFIG):
   const state = createInitialMission(config);
   state.training = createInitialTraining();
   return state;
+}
+
+/** Registry startup; all UI and save restoration use stable scenario identity. */
+export function createRegisteredMission(id: MissionId = RED_STORM_ID, fault?: FaultId): MissionState {
+  const def = getMission(id);
+  if (id === RED_STORM_ID) return { ...createTrainingMission(def.config), missionVersion: def.version };
+  return initializeEmergency(createInitialMission(def.config), fault);
 }
 
 /** Forecast a proposed power plan by running THIS engine on a copy of the state. */
@@ -78,8 +88,17 @@ function fullyPowered(state: MissionState, id: ModuleId): boolean {
 }
 
 export function applyMissionAction(state: MissionState, action: MissionAction): ActionResult {
+  if (action.type === 'EMERGENCY_ACTION') return applyEmergencyCommand(state, action.command);
+  if (action.type === 'ADVANCE_MINUTES') {
+    if (!state.emergency || state.status !== 'running' || !Number.isSafeInteger(action.minutes) || action.minutes <= 0) return { ok: false, state, reason: 'Choose positive integer minutes in an active atmospheric mission.' };
+    return { ok: true, state: advanceEmergencySteps(state, action.minutes).at(-1)! };
+  }
+  if (state.emergency && action.type === 'SET_LEARNING_MODE') return applyEmergencyCommand(state, { kind: 'guidance', mode: action.mode });
+  if (state.emergency && ['INSPECT_COMPONENT', 'RUN_DIAGNOSTIC', 'RECORD_HYPOTHESIS', 'TRAINING_STEP', 'REPAIR_WATER_RECYCLER'].includes(action.type)) return { ok: false, state, reason: 'Use the selected mission’s atmospheric workbench.' };
+  if (state.emergency && action.type === 'RESET_MISSION') return { ok: true, state: createRegisteredMission(state.scenarioId as MissionId, state.emergency.fault) };
   if (isTrainingAction(action)) {
     if (action.type === 'APPLY_POWER_PLAN') {
+      if (!action.loads || typeof action.loads !== 'object' || Object.entries(action.loads).some(([id,value])=>!['greenhouse','research-lab','water-recycler','life-support'].includes(id)||typeof value!=='boolean')) return {ok:false,state,reason:'Choose valid load switches with boolean values.'};
       if (state.status !== 'running') return { ok: false, reason: 'Mission has concluded. Use Rewind or Reset to continue.', state };
       const planned = applyPlanToState(state, action.loads);
       allocatePower(planned, false);
@@ -119,6 +138,10 @@ export function applyMissionAction(state: MissionState, action: MissionAction): 
 /** Return one independent state for every elapsed hour; stop immediately on a terminal outcome. */
 export function advanceMissionSteps(state: MissionState, hours: number): MissionState[] {
   if (!Number.isSafeInteger(hours) || hours <= 0) throw new RangeError('Advance duration must be a positive safe integer of hours.');
+  if (state.emergency) {
+    if (!Number.isSafeInteger(hours * 60)) throw new RangeError('Advance duration is too large.');
+    return advanceEmergencySteps(state, hours * 60);
+  }
   const results: MissionState[] = [];
   let current = state;
   for (let step = 0; step < hours && current.status === 'running'; step++) {
