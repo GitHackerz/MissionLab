@@ -4,6 +4,9 @@ export const FAILURE_LABEL: Record<string, string> = {
   power: 'Battery ran out',
   water: 'Water below safe level',
   oxygen: 'Oxygen below safe level',
+  pressure: 'Cabin pressure too low',
+  co2: 'CO₂ above safe level',
+  deadline: 'Ran out of time',
 };
 
 export function timeAgo(date: Date, now = Date.now()): string {
