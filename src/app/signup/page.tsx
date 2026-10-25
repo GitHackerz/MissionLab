@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/server/auth/session';
+import { getCurrentUser, homePathFor } from '@/server/auth/session';
 import { AuthShell } from '@/features/auth/components/AuthShell';
 import { SignUpForm } from '@/features/auth/components/AuthForms';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SignUpPage() {
-  if (await getCurrentUser()) redirect('/mission');
+  const user = await getCurrentUser();
+  if (user) redirect(homePathFor(user));
   return (
     <AuthShell
       title="Create your account"

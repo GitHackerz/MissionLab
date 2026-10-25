@@ -88,7 +88,7 @@ export function OnboardingForm() {
         <legend className="mb-1 text-sm font-medium">I’m here as a…</legend>
         {[
           { value: 'STUDENT', title: 'Student', text: 'I want to fly the mission and keep the crew alive.' },
-          { value: 'TEACHER', title: 'Teacher', text: 'I want to try the mission my students will play. Class tools come with the pilot.' },
+          { value: 'TEACHER', title: 'Teacher', text: 'I want to create a class, share a code and follow how my students do.' },
         ].map((o) => (
           <label
             key={o.value}

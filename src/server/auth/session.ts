@@ -9,7 +9,7 @@ import { generateToken, hashToken } from './crypto';
 
 const SESSION_DAYS = 30;
 
-export type SessionUser = Pick<User, 'id' | 'email' | 'name' | 'role' | 'emailVerifiedAt' | 'onboardedAt'>;
+export type SessionUser = Pick<User, 'id' | 'email' | 'name' | 'role' | 'emailVerifiedAt' | 'onboardedAt' | 'plan' | 'planRenewsAt' | 'stardust'>;
 
 export async function createSession(userId: string): Promise<void> {
   const token = generateToken();
@@ -36,7 +36,9 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     const session = await prisma.session.findUnique({
       where: { tokenHash: hashToken(token) },
       include: {
-        user: { select: { id: true, email: true, name: true, role: true, emailVerifiedAt: true, onboardedAt: true } },
+        user: {
+          select: { id: true, email: true, name: true, role: true, emailVerifiedAt: true, onboardedAt: true, plan: true, planRenewsAt: true, stardust: true },
+        },
       },
     });
     if (!session || session.expiresAt < new Date()) return null;
@@ -53,6 +55,18 @@ export async function requireUser(): Promise<SessionUser> {
   if (!user) redirect('/login');
   if (!user.emailVerifiedAt) redirect(`/verify-email?email=${encodeURIComponent(user.email)}`);
   return user;
+}
+
+export async function requireTeacher(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (user.role !== 'TEACHER') redirect('/mission');
+  return user;
+}
+
+/** Where a signed-in user lands after login, verification or onboarding. */
+export function homePathFor(user: Pick<SessionUser, 'role' | 'onboardedAt'>): string {
+  if (!user.onboardedAt) return '/welcome';
+  return user.role === 'TEACHER' ? '/teacher' : '/dashboard';
 }
 
 export async function destroySession(): Promise<void> {

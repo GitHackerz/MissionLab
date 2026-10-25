@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { prisma } from '@/server/db';
 import { consumeToken } from '@/server/auth/tokens';
-import { createSession } from '@/server/auth/session';
+import { createSession, homePathFor } from '@/server/auth/session';
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token');
@@ -17,5 +17,5 @@ export async function GET(request: NextRequest) {
   });
   // Clicking the link from the inbox signs the user in on that device.
   await createSession(user.id);
-  return NextResponse.redirect(new URL(user.onboardedAt ? '/mission' : '/welcome', request.url));
+  return NextResponse.redirect(new URL(homePathFor(user), request.url));
 }

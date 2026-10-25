@@ -22,8 +22,22 @@ export const CURRENCY: Currency = {
     'Stardust (✦) is MissionLab’s fictional currency for the pilot. Prices show how plans compare.',
 };
 
+/** What a teacher's plan unlocks. Enforced on the server (src/server/billing/entitlements.ts). */
+export interface PlanLimits {
+  /** Classes a teacher can own (sample classes never count). */
+  maxClasses: number;
+  /** Active students across all the teacher's classes. */
+  maxStudents: number;
+  /** Active assignments per class; null = unlimited, 0 = none. */
+  maxAssignmentsPerClass: number | null;
+  /** Assign a mission to chosen students instead of the whole class. */
+  targetedAssignments: boolean;
+  /** Activity tab: why missions ended early, recent missions. */
+  insights: boolean;
+}
+
 export interface Plan {
-  id: string;
+  id: PlanId;
   name: string;
   audience: string;
   /** Price in Stardust; 0 = free, null = custom quote. */
@@ -33,7 +47,15 @@ export interface Plan {
   features: string[];
   cta: { label: string; href: string };
   highlighted?: boolean;
+  /** Custom-quote plans can't be bought through checkout. */
+  purchasable: boolean;
+  limits: PlanLimits;
 }
+
+export type PlanId = 'explorer' | 'classroom' | 'academy' | 'museum';
+
+/** Stardust every new account receives for the pilot, so teachers can try a paid plan. */
+export const STARTING_STARDUST = 2000;
 
 export function formatPrice(price: number | null): string {
   if (price === null) return 'Custom';
@@ -45,11 +67,13 @@ export const PLANS: Plan[] = [
   {
     id: 'explorer',
     name: 'Explorer',
-    audience: 'Individual learners',
+    audience: 'Learners and small groups',
     price: 0,
-    description: 'Play the first mission and learn how a Mars habitat stays alive.',
-    features: ['Mission 01: The Red Storm', 'Mission Autopsy after every run', 'Rewind and compare two timelines', 'Free account, unlimited play'],
+    description: 'Play the missions, and try MissionLab with a small group.',
+    features: ['All available missions, unlimited play', 'Mission Autopsy and rewind', '1 class, up to 5 students', '1 whole-class assignment at a time'],
     cta: { label: 'Start free', href: '/signup' },
+    purchasable: false,
+    limits: { maxClasses: 1, maxStudents: 5, maxAssignmentsPerClass: 1, targetedAssignments: false, insights: false },
   },
   {
     id: 'classroom',
@@ -58,9 +82,11 @@ export const PLANS: Plan[] = [
     price: 299,
     cadence: 'per year',
     description: 'Run MissionLab as a class activity and see how each student reasoned.',
-    features: ['Everything in Explorer', 'Full mission catalogue as it grows', 'Student progress and decision history', 'Printable debriefs for class discussion'],
-    cta: { label: 'Join the pilot', href: '/signup?plan=classroom' },
+    features: ['Everything in Explorer', '1 class, up to 35 students', 'Unlimited assignments, to the class or chosen students', 'Activity insights: why missions ended early'],
+    cta: { label: 'Choose Classroom', href: '/billing/checkout?plan=classroom' },
     highlighted: true,
+    purchasable: true,
+    limits: { maxClasses: 1, maxStudents: 35, maxAssignmentsPerClass: null, targetedAssignments: true, insights: true },
   },
   {
     id: 'academy',
@@ -68,9 +94,11 @@ export const PLANS: Plan[] = [
     audience: 'A science department, up to 300 students',
     price: 1499,
     cadence: 'per year',
-    description: 'Several teachers, shared classes and difficulty settings.',
-    features: ['Everything in Classroom', 'Multiple teachers and classes', 'School sign-in', 'Custom difficulty settings'],
-    cta: { label: 'Join the pilot', href: '/signup?plan=academy' },
+    description: 'Several classes, shared insights and room for a whole department.',
+    features: ['Everything in Classroom', 'Up to 10 classes', 'Up to 300 students', 'Department-wide insights'],
+    cta: { label: 'Choose Academy', href: '/billing/checkout?plan=academy' },
+    purchasable: true,
+    limits: { maxClasses: 10, maxStudents: 300, maxAssignmentsPerClass: null, targetedAssignments: true, insights: true },
   },
   {
     id: 'museum',
@@ -80,5 +108,11 @@ export const PLANS: Plan[] = [
     description: 'Kiosk mode and offline installs for workshops and events.',
     features: ['Multi-station kiosk mode', 'Offline installation', 'Facilitator controls', 'Co-branding'],
     cta: { label: 'Talk to us', href: '/signup?plan=museum' },
+    purchasable: false,
+    limits: { maxClasses: 50, maxStudents: 5000, maxAssignmentsPerClass: null, targetedAssignments: true, insights: true },
   },
 ];
+
+export function getPlan(id: string | null | undefined): Plan {
+  return PLANS.find((p) => p.id === id) ?? PLANS[0];
+}
