@@ -86,6 +86,11 @@ export interface MissionState {
   modules: Record<ModuleId, ModuleState>;
   events: MissionEvent[];
   scienceScore: number;
+  /** Embedded serializable scenario rules; optional for legacy UI fixtures. */
+  config?: MissionConfig;
+  power?: PowerTelemetry;
+  flows?: ResourceFlows;
+  failure?: MissionFailure;
   failureReason?: string;
 }
 
@@ -97,7 +102,7 @@ export type InWorldAction =
 
 // Session / replay controls (orchestration level)
 export type SessionAction =
-  | { type: 'REWIND_TO'; hour: number; branchFrom: string }
+  | { type: 'REWIND_TO'; hour: number; branchFrom: string; snapshotId?: string }
   | { type: 'RESET_MISSION' };
 
 export type MissionAction = InWorldAction | SessionAction;
@@ -136,6 +141,7 @@ export interface MissionConfig {
   crewOxygenUseKgPerHour: number;
   normalOxygenGenKgPerHour: number;
   waterRecyclerRepairDurationHours: number;
+  oxygenProcessWaterLitersPerKg?: number;
 }
 
 export interface MissionSnapshot {
@@ -170,6 +176,10 @@ export interface MissionSummary {
   failureReason?: string;
   keyDecisions: { hour: number; action: string; impact: string }[];
   autopsyCauseChain: string[];
+  significantEvents: MissionEvent[];
+  rootCause?: MissionFailure;
+  minimumMargins: { batteryKwh: number; waterLiters: number; oxygenKg: number };
+  thresholds: { batteryWarningKwh: number; waterFailureLiters: number; oxygenFailureKg: number };
 }
 
 export interface BranchComparison {
@@ -191,4 +201,28 @@ export interface HabitatSceneProps {
   selectedModuleId: ModuleId | null;
   onSelectModule: (moduleId: ModuleId) => void;
   className?: string;
+}
+
+export interface PowerTelemetry {
+  solarGenerationKw: number;
+  requestedPowerKw: number;
+  availablePowerKw: number;
+  suppliedPowerKw: number;
+  unservedPowerKw: number;
+}
+
+export interface MissionFailure {
+  kind: 'power' | 'water' | 'oxygen';
+  hour: number;
+  resources: Resources;
+  causeIds: string[];
+}
+
+/** Rates actually integrated in the most recent one-hour interval. */
+export interface ResourceFlows {
+  waterRecoveryLitersPerHour: number;
+  oxygenProductionKgPerHour: number;
+  oxygenProcessWaterLitersPerHour: number;
+  netWaterLitersPerHour: number;
+  netOxygenKgPerHour: number;
 }

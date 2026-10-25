@@ -3,19 +3,20 @@
 import React from 'react';
 import { useMissionStore } from '@/state/missionStore';
 import { Zap, Droplets, Wind, Users, Award, AlertCircle } from 'lucide-react';
-import { RED_STORM_CONFIG } from '@/simulation/config';
+import { getMissionConfig } from '@/simulation/config';
 
 export const ResourceHud: React.FC = () => {
   const { missionState } = useMissionStore();
-  const { resources } = missionState;
+  const { resources, flows } = missionState;
+  const config = getMissionConfig(missionState);
 
   const batteryPct = Math.min(
     100,
-    Math.max(0, (resources.batteryKwh / resources.batteryCapacityKwh) * 100)
+    Math.max(0, resources.batteryCapacityKwh > 0 ? (resources.batteryKwh / resources.batteryCapacityKwh) * 100 : 0)
   );
-  const isBatteryLow = resources.batteryKwh <= RED_STORM_CONFIG.batterySafetyThresholdKwh;
-  const isWaterLow = resources.waterLiters <= RED_STORM_CONFIG.waterSafetyThresholdLiters;
-  const isOxygenLow = resources.oxygenKg <= RED_STORM_CONFIG.oxygenSafetyThresholdKg;
+  const isBatteryLow = resources.batteryKwh <= config.batterySafetyThresholdKwh;
+  const isWaterLow = resources.waterLiters <= config.waterSafetyThresholdLiters;
+  const isOxygenLow = resources.oxygenKg <= config.oxygenSafetyThresholdKg;
 
   return (
     <div className="bg-[#180b08] border-b border-mars-border px-4 py-2.5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 select-none">
@@ -40,7 +41,7 @@ export const ResourceHud: React.FC = () => {
         </div>
         {isBatteryLow && (
           <div className="text-[10px] text-red-400 mt-1 flex items-center gap-1 font-mono">
-            <AlertCircle className="w-3 h-3" /> &lt; 15 kWh Reserve!
+            <AlertCircle className="w-3 h-3" /> ≤ {config.batterySafetyThresholdKwh} kWh Reserve!
           </div>
         )}
       </div>
@@ -57,7 +58,7 @@ export const ResourceHud: React.FC = () => {
           </span>
         </div>
         <div className="text-[10px] text-stone-400 flex justify-between font-mono">
-          <span>Net: {missionState.modules['water-recycler'].status === 'operational' ? '-0.08 L/h' : '-0.50 L/h'}</span>
+          <span>Last hour: {flows ? `${flows.netWaterLitersPerHour.toFixed(2)} L/h` : '—'}</span>
           <span>Spares: {resources.sparePumps}</span>
         </div>
       </div>
@@ -74,8 +75,8 @@ export const ResourceHud: React.FC = () => {
           </span>
         </div>
         <div className="text-[10px] text-stone-400 flex justify-between font-mono">
-          <span>Demand: 0.14 kg/h</span>
-          <span className="text-emerald-400 font-semibold">ECLSS ON</span>
+          <span>Demand: {config.crewOxygenUseKgPerHour} kg/h</span>
+          <span className="text-emerald-400 font-semibold">Last output: {flows?.oxygenProductionKgPerHour.toFixed(2) ?? '—'} kg/h</span>
         </div>
       </div>
 
@@ -92,7 +93,7 @@ export const ResourceHud: React.FC = () => {
         </div>
         <div className="text-[10px] text-stone-400 flex justify-between font-mono">
           <span>Rations: {resources.foodRations}</span>
-          <span>Heating: 1.2 kW</span>
+          <span>Heating: {missionState.modules['crew-habitat'].suppliedPowerKw.toFixed(1)} kW</span>
         </div>
       </div>
 
@@ -108,8 +109,8 @@ export const ResourceHud: React.FC = () => {
           </span>
         </div>
         <div className="text-[10px] text-stone-400 flex justify-between font-mono">
-          <span>Lab: {missionState.modules['research-lab'].enabled ? 'Active' : 'Paused'}</span>
-          <span>Duration: 72h</span>
+          <span>Lab: {missionState.modules['research-lab'].status}</span>
+          <span>Duration: {missionState.durationHours}h</span>
         </div>
       </div>
     </div>

@@ -1,19 +1,18 @@
 import { create } from 'zustand';
-import {
+import type {
   ActionResult,
   AvailableAction,
   MissionAction,
   MissionSnapshot,
+  MissionBranch,
   MissionState,
   ModuleId,
 } from '@/simulation/types';
 import {
-  advanceMission,
-  applyMissionAction,
   createInitialMission,
   getAvailableActions,
 } from '@/simulation/engine';
-import { createSnapshot } from '@/simulation/history';
+import { createSnapshot, forkMission, recordMissionAction } from '@/simulation/history';
 import { FIXTURES } from '@/simulation/fixtures';
 import { RED_STORM_CONFIG } from '@/simulation/config';
 
@@ -23,6 +22,7 @@ export interface MissionStore {
   selectedModuleId: ModuleId | null;
   availableActions: AvailableAction[];
   history: MissionSnapshot[];
+  branches: MissionBranch[];
   activeFixtureKey: string;
 
   // Actions
@@ -42,6 +42,7 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
   selectedModuleId: 'water-recycler', // Start with an inspectable module
   availableActions: getAvailableActions(initialMission),
   history: [initialSnapshot],
+  branches: [],
   activeFixtureKey: 'initial',
 
   selectModule: (moduleId: ModuleId | null) => {
@@ -60,50 +61,48 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
         availableActions: getAvailableActions(resetState),
         history: [snap],
         activeFixtureKey: 'initial',
+        branches: [],
       });
       return { ok: true, state: resetState };
     }
 
     // Special case: Session Rewind
     if (action.type === 'REWIND_TO') {
-      const targetSnap = history.find((s) => s.hour === action.hour);
-      if (!targetSnap) {
-        return { ok: false, reason: `Snapshot at hour ${action.hour} not found`, state: missionState };
+      const { branches } = get();
+      if (!Number.isSafeInteger(action.hour) || action.hour < 0 || action.hour > missionState.hour || action.branchFrom !== missionState.branchId) {
+        return { ok: false, reason: 'Select an existing hour on the active branch.', state: missionState };
       }
-      const restoredState = JSON.parse(JSON.stringify(targetSnap.state));
-      set({
-        missionState: restoredState,
-        availableActions: getAvailableActions(restoredState),
-      });
+      const targetSnap = action.snapshotId
+        ? history.find(s => s.snapshotId === action.snapshotId && s.hour === action.hour)
+        : history.find(s => s.hour === action.hour);
+      if (!targetSnap) return { ok: false, reason: 'Snapshot not found. Select an existing decision point.', state: missionState };
+      const ownStart = history.findIndex(s => s.branchId === missionState.branchId);
+      const original: MissionBranch = { branchId: missionState.branchId,
+        parentBranchId: ownStart > 0 ? history[ownStart - 1].branchId : undefined,
+        forkHour: history[Math.max(0, ownStart)].hour,
+        snapshots: structuredClone(history), finalStatus: missionState.status };
+      const branch = forkMission(history, targetSnap.snapshotId, `branch-${branches.length + 1}`);
+      const restoredState = structuredClone(branch.snapshots.at(-1)!.state);
+      set({ missionState: restoredState, history: branch.snapshots,
+        branches: [...branches, original], availableActions: getAvailableActions(restoredState) });
       return { ok: true, state: restoredState };
     }
 
     // In-world actions
-    const result = applyMissionAction(missionState, action);
-    if (result.ok) {
-      const newSnap = createSnapshot(result.state, action);
-      set({
-        missionState: result.state,
-        availableActions: getAvailableActions(result.state),
-        history: [...history, newSnap],
-      });
+    const transition = recordMissionAction(missionState, history, action);
+    if (transition.result.ok) {
+      set({ missionState: transition.result.state,
+        availableActions: getAvailableActions(transition.result.state), history: transition.history });
     }
-
-    return result;
+    return transition.result;
   },
 
   advanceTime: (hours: number) => {
-    const { missionState, history } = get();
-    const nextState = advanceMission(missionState, hours);
-    const snap = createSnapshot(nextState, { type: 'ADVANCE_TIME', hours });
-    set({
-      missionState: nextState,
-      availableActions: getAvailableActions(nextState),
-      history: [...history, snap],
-    });
+    get().applyAction({ type: 'ADVANCE_TIME', hours });
   },
 
   loadFixture: (fixtureKey: string) => {
+    if (fixtureKey === 'initial') { get().resetMission(); return; }
     const fixture = FIXTURES[fixtureKey];
     if (!fixture) {
       console.warn(`Fixture ${fixtureKey} not found`);
@@ -116,6 +115,7 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
       availableActions: getAvailableActions(stateCopy),
       history: [snap],
       activeFixtureKey: fixtureKey,
+      branches: [],
     });
   },
 

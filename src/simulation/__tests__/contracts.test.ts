@@ -37,7 +37,7 @@ describe('MissionLab Shared Contracts & Engine Foundation', () => {
     for (const modId of ALL_MODULE_IDS) {
       expect(state.modules[modId]).toBeDefined();
       expect(state.modules[modId].id).toBe(modId);
-      expect(state.modules[modId].status).toBe('operational');
+      expect(state.modules[modId].status).toBe(modId === 'solar-array' ? 'warning' : 'operational');
     }
   });
 

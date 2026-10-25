@@ -6,6 +6,7 @@ import { useMissionStore } from '@/state/missionStore';
 import { MissionHeader } from '@/features/mission-ui/components/MissionHeader';
 import { ResourceHud } from '@/features/mission-ui/components/ResourceHud';
 import { ModuleInspector } from '@/features/mission-ui/components/ModuleInspector';
+import { MissionReview } from '@/features/debrief/components/MissionReview';
 import { EventTimeline } from '@/features/mission-ui/components/EventTimeline';
 
 // Dynamically import Three.js Scene to ensure SSR safety with WebGL
@@ -52,6 +53,7 @@ export default function MissionControlPage() {
 
       {/* 4. Event Stream & Log */}
       <EventTimeline />
+      <MissionReview />
     </main>
   );
 }

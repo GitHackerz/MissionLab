@@ -13,9 +13,9 @@
 |---|---|---|---|---|
 | **0:00 – 0:45** | **Amina** | Hook & Future Problem | Chryse Planitia 3D Habitat during peaceful sunrise | *"Beyond 2030, humans on Mars will face 20-minute communication delays with Earth. Trainees cannot rely on Houston; they must master systems thinking under high constraints."* |
 | **0:45 – 1:30** | **Habib** | The 3D Digital Twin | Interacting with 3D modules; clicking Water Recycler | *"This is not decorative art. Every 3D mesh, emissive beacon, and dust shader is directly bound to a deterministic simulation engine running in TypeScript."* |
-| **1:30 – 2:30** | **Amina** | The Crisis & Bad Decision | Dust Storm arrives; fast-forward to Hour 25 blackout | *"A dust storm cuts solar to 4 kW. The student leaves optional science running. Battery drains. At Hour 25, central power collapses. Total life-support failure."* |
+| **1:30 – 2:30** | **Amina** | The Crisis & Bad Decision | Dust Storm arrives; fast-forward to Hour 26 essential power shortage | *"A dust storm cuts solar to 4 kW. The student leaves optional science running. Battery drains. At Hour 26, solar and depleted storage cannot fully supply essential electrical demand."* |
 | **2:30 – 3:30** | **Kammoun** | Mission Autopsy & Rewind | Mission Autopsy screen; clicking "Rewind to Hour 0" | *"No 'Game Over' screens. Mission Autopsy uses structured telemetry evidence to explain the causal chain. We rewind time to Hour 0, shed non-essential loads, and repair the pump."* |
-| **3:30 – 4:30** | **Amina** | Alternate Victory & Compare | Fast-forward to Hour 72; side-by-side comparison table | *"On the exact same physics engine, the colony survives 72 hours. Side-by-side branch comparison proves how operational trade-offs save lives."* |
+| **3:30 – 4:30** | **Amina** | Alternate Victory & Compare | Fast-forward to Hour 72; recorded branch comparison | *"On the exact same physics engine, the colony survives 72 hours. Recorded branch comparison shows how operational trade-offs save lives."* |
 | **4:30 – 5:00** | **All** | SaaS Vision & Wrap | SaaS roadmap graphic & architecture diagram | *"MissionLab turns complex space engineering into intuitive systems thinking. Thank you."* |
 
 ---
@@ -23,14 +23,14 @@
 ## 2. Centerpiece Live Demonstration Flow
 
 The live demo follows a strict, rehearsed, high-drama arc:
-1. **The Setup:** Open Mission 01 in Chryse Planitia. Point out nominal $10\text{ kW}$ solar generation, $110\text{ kWh}$ battery, and 4 safe crew members.
-2. **The Shock:** Trigger Hour 0 dust storm. Show the visual environment turn into a dense Martian rust storm and solar power collapse to $4.0\text{ kW}$.
-3. **The Mistake:** Explain that a typical student neglects power loads. Advance time by $+6\text{h}$ multiple times. Show battery gauge steadily drop into the red ($13.2\text{ kWh}$). At Hour 25, a critical blackout banner hits.
-4. **The Autopsy:** Transition to the Mission Autopsy. Point out the exact causal sentence: *"At Hour 0, keeping greenhouse (2.5 kW) and lab (1.5 kW) active created a 4.4 kW deficit, exhausting energy at Hour 25."*
-5. **The Rewind:** Click "Rewind to Hour 0". The habitat instantly rewinds to nominal conditions.
+1. **The Setup:** Open Mission 01 in Chryse Planitia. Point out the initial $110\text{ kWh}$ battery and four crew members. The storm is already active at initialization.
+2. **The Shock:** Inspect the recorded Hour 0 dust storm. Show the visual environment turn into a dense Martian rust storm and solar power collapse to $4.0\text{ kW}$.
+3. **The Mistake:** Explain that a typical student neglects power loads. Advance time by $+6\text{h}$ multiple times. Show battery gauge steadily drop into the red ($13.2\text{ kWh}$). At Hour 26, essential electrical shortage terminates the mission.
+4. **The Autopsy:** Transition to the Mission Autopsy. Explain the recorded causal evidence: *"At Hour 0, keeping greenhouse (2.5 kW) and lab (1.5 kW) active created a 4.4 kW deficit, exhausting stored energy at Hour 25 and leaving essential demand unserved during the following interval."*
+5. **The Rewind:** Open "Mission Autopsy & Rewind", select the initial Hour 0 state, and click "Create alternative branch". The storm remains active under the same environmental assumptions.
 6. **The Correction:** Click Greenhouse -> Suspend ($+2.5\text{ kW}$ margin). Click Research Lab -> Pause ($+1.5\text{ kW}$ margin). Advance to Hour 30.
-7. **The Secondary Fault:** Recycler pump fails! Explain the maintenance dilemma. Click "Repair with Spare Pump". Advance $+4\text{h}$. Show the pump restore to operational green. Advance to Hour 72.
-8. **The Victory & Comparison:** Mission Accomplished banner appears. Show the side-by-side branch comparison proving the survival delta.
+7. **The Secondary Fault:** Recycler pump fails! Explain the maintenance dilemma. Select the recycler and confirm "Repair Water Recycler". Advance four one-hour steps. Show the pump restore to operational green. Advance to Hour 72.
+8. **The Victory & Comparison:** Mission Accomplished banner appears. Open the review panel and show the preserved original failure and the active successful branch. The survival policy ends with 81.2 kWh battery, 14.6 L water and 6.44 kg oxygen.
 
 ---
 

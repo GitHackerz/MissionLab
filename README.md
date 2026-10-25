@@ -2,7 +2,7 @@
 
 > **LUMEN 2.0 — Beyond 2030 Hackathon Project**  
 > *Concept Inspiration: NASA Space Apps Challenge 2026 — Build a Junior Astronaut Mission Trainer*  
-> **Status:** Phase 0 Architecture, Technical Contracts & Vertical Slice Initialized
+> **Status:** Red Storm engine, deterministic branching and Mission Autopsy implemented; see the [verification report](docs/16-IMPLEMENTATION-REPORT.md).
 
 ---
 
@@ -55,7 +55,7 @@ Rather than answering multiple-choice quizzes or watching pre-rendered outcomes,
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/missionlab.git
+git clone https://github.com/GitHackerz/MissionLab.git
 cd missionlab
 
 # Install dependencies
@@ -181,7 +181,7 @@ The project operates under a strict contract boundary in `src/simulation/types.t
 
 ---
 
-## 7. Current Milestone 0 Status
+## 7. Foundation Milestone Status (historical)
 
 - [x] Next.js 15+ App Router configured in strict mode
 - [x] Tailwind CSS configured with custom Mars palette
@@ -191,7 +191,7 @@ The project operates under a strict contract boundary in `src/simulation/types.t
 - [x] 3D scene renders all 7 habitat modules with status glow
 - [x] Bi-directional selection established between 3D scene and inspection panel
 - [x] Vitest invariant test suite configured and passing
-- [x] Zero TypeScript, ESLint, or Next.js build errors
+- Current quality gate results: [implementation report](docs/16-IMPLEMENTATION-REPORT.md)
 - [x] Complete 15-part documentation system written in `docs/`
 
 ---
@@ -221,3 +221,5 @@ For detailed guidelines, consult the dedicated documentation files:
 
 Developed for **LUMEN 2.0 — Beyond 2030** by Kammoun, Habib, and Amina.  
 Scientific concepts inspired by NASA Space Apps Challenge 2026 and published NASA ECLSS engineering research. See `docs/13-SOURCES-ATTRIBUTION.md` for full citations and asset licensing information.
+
+The live mission starts with the storm active. Open **Mission Autopsy & Rewind** to inspect evidence, select an earlier hourly state or same-hour decision, create an independent branch and compare it with the original outcome. Turn off greenhouse and research at hour 0 and repair the recycler at hour 30 to survive. Scenario equations and assumptions are in [the engine guide](docs/04-SIMULATION-ENGINE.md).

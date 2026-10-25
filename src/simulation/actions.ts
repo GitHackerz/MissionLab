@@ -1,10 +1,12 @@
-import { AvailableAction, MissionAction, MissionState } from './types';
+import { getMissionConfig } from './config';
+import type { AvailableAction, MissionAction, MissionState } from './types';
 
 /**
  * Determine which player actions are currently valid in the given simulation state.
  */
 export function getAvailableActions(state: MissionState): AvailableAction[] {
   const actions: AvailableAction[] = [];
+  const config = getMissionConfig(state);
 
   // If mission has already terminated, no in-world actions are available
   if (state.status === 'success' || state.status === 'failed') {
@@ -50,7 +52,7 @@ export function getAvailableActions(state: MissionState): AvailableAction[] {
   // 3. Repair Water Recycler
   const recycler = state.modules['water-recycler'];
   const hasSpare = state.resources.sparePumps > 0;
-  const isDamaged = recycler.status === 'degraded' || recycler.status === 'offline';
+  const isDamaged = (recycler.status === 'degraded' || recycler.status === 'offline') && recycler.health < 0.5;
   const isAlreadyRepairing = recycler.status === 'repairing';
 
   actions.push({
@@ -60,10 +62,10 @@ export function getAvailableActions(state: MissionState): AvailableAction[] {
     description: isAlreadyRepairing
       ? `Technician actively replacing pump (${recycler.repairHoursRemaining ?? 0}h remaining).`
       : hasSpare
-      ? 'Consumes 1 spare pump assembly. Requires 4 simulated hours of technician work.'
+      ? `Consumes 1 spare pump assembly. Requires ${config.waterRecyclerRepairDurationHours} simulated hours of technician work.`
       : 'Cannot repair: No spare pump assemblies remaining in habitat inventory.',
     enabled: isDamaged && hasSpare && !isAlreadyRepairing,
-    disabledReason: !isDamaged
+    disabledReason: isAlreadyRepairing ? 'Repair is already in progress.' : !isDamaged
       ? 'Recycler is already operating nominally.'
       : !hasSpare
       ? 'No spare pump assemblies available.'
@@ -71,7 +73,7 @@ export function getAvailableActions(state: MissionState): AvailableAction[] {
       ? 'Repair is already in progress.'
       : undefined,
     costSparePumps: 1,
-    durationHours: 4,
+    durationHours: config.waterRecyclerRepairDurationHours,
     payload: {
       type: 'REPAIR_WATER_RECYCLER',
     },
@@ -122,6 +124,9 @@ export function validateAction(
 
   switch (action.type) {
     case 'SET_ENABLED': {
+      if (!['greenhouse', 'research-lab'].includes(action.moduleId) || typeof action.enabled !== 'boolean') {
+        return { valid: false, reason: 'Only greenhouse and research-lab accept a boolean enabled value.' };
+      }
       const mod = state.modules[action.moduleId];
       if (!mod) {
         return { valid: false, reason: `Unknown module: ${action.moduleId}` };
@@ -134,7 +139,7 @@ export function validateAction(
       if (recycler.status === 'repairing') {
         return { valid: false, reason: 'Repair is already underway.' };
       }
-      if (recycler.status === 'operational') {
+      if (!['degraded', 'offline'].includes(recycler.status) || recycler.health >= 0.5) {
         return { valid: false, reason: 'Water recycler is operating nominally.' };
       }
       if (state.resources.sparePumps <= 0) {
@@ -144,14 +149,14 @@ export function validateAction(
     }
 
     case 'ADVANCE_TIME': {
-      if (action.hours <= 0) {
-        return { valid: false, reason: 'Advance duration must be positive.' };
+      if (!Number.isSafeInteger(action.hours) || action.hours <= 0) {
+        return { valid: false, reason: 'Advance duration must be a positive safe integer of hours.' };
       }
       return { valid: true };
     }
 
     case 'REWIND_TO': {
-      if (action.hour < 0 || action.hour > state.hour) {
+      if (!Number.isSafeInteger(action.hour) || action.hour < 0 || action.hour > state.hour) {
         return { valid: false, reason: 'Rewind target must be between Hour 0 and current hour.' };
       }
       return { valid: true };
