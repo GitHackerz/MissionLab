@@ -3,15 +3,62 @@
 @tailwind utilities;
 
 :root {
-  --background: #120705;
-  --foreground: #f1f5f9;
+  color-scheme: dark;
+  --background: #0e0b0c;
+  --foreground: #fdfaf5;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  overflow: hidden;
+  font-family: var(--font-body), "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid #f47a3a;
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-target items-center justify-center gap-2 rounded-md border border-transparent px-5 font-body text-[15px] font-semibold transition active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-flare text-flare-ink hover:bg-flare-hover;
+  }
+  .btn-secondary {
+    @apply btn border-space-line bg-space-3 text-cream hover:border-ember;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-dust hover:bg-space-3 hover:text-cream;
+  }
+  .eyebrow {
+    @apply font-data text-xs font-medium uppercase tracking-[0.18em] text-ember;
+  }
+  .field {
+    @apply min-h-target w-full rounded-md border border-space-line bg-space px-3 text-[15px] text-cream placeholder:text-dust-2 focus:border-ember focus:outline-none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Custom scrollbars for telemetry panels */

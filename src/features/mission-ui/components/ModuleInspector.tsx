@@ -69,7 +69,7 @@ export const ModuleInspector: React.FC = () => {
   });
 
   return (
-    <aside className="w-full lg:w-80 bg-[#150a08] border-l border-mars-border flex flex-col h-full select-none">
+    <aside id="tour-inspector" className="w-full lg:w-80 bg-[#150a08] border-l border-mars-border flex flex-col h-full select-none">
       {/* Header & Quick Selector */}
       <div className="p-3 border-b border-mars-border bg-black/20">
         <div className="flex items-center justify-between mb-2">
