@@ -107,4 +107,11 @@ The next repair instruction checks the selected bay's physical state as well as 
 
 Screenshots were inspected for the menu, briefing, load-shedding, greenhouse safety lighting, recycler investigation/intervention/verification, mobile layout and Autopsy. Test scripts and screenshots are local QA artifacts under `/tmp/missionlab-realism-*`.
 
-The default release build and final browser smoke are recorded below after completion. School-device performance, full account/email flows, audio quality across devices, installation and complete offline play have not been certified by this gameplay walkthrough. Radiation and individual irrigation/plant-health simulation remain explicitly unavailable. Browser-local saves can be lost if site storage is cleared. The required `graphify update .` was attempted but the installed launcher fails with `ModuleNotFoundError: No module named 'graphify'`; no graph output was generated.
+The default release build and final browser smoke also passed (see below). School-device performance, full account/email flows, audio quality across devices, installation and complete offline play have not been certified by this gameplay walkthrough. Radiation and individual irrigation/plant-health simulation remain explicitly unavailable. Browser-local saves can be lost if site storage is cleared. The required `graphify update .` was attempted but the installed launcher fails with `ModuleNotFoundError: No module named 'graphify'`; no graph output was generated.
+
+
+### Final default production release
+
+`MISSIONLAB_DIST_DIR=.next-realism-release pnpm build` passed with scene diagnostics disabled. `/mission` is 61.7 kB with 173 kB first-load JavaScript in this build. The final release was served at `http://localhost:3021/mission`.
+
+Fresh desktop (1440 × 900) and mobile (390 × 844) Chromium contexts, with a previously saved mute preference, passed menu → catalog → briefing → habitat → pause menu → Escape return. Both reported no captured browser errors, no horizontal overflow, and no exposed `__exploreDebug` hook. The first mobile smoke locator expected the desktop “Menu / Esc” accessible label; updating the harness to the visible mobile “Menu” label passed. Screenshots of the final desktop and mobile world were inspected. These checks include the integrated optional audio/PWA code but do not certify installation or offline completion.
