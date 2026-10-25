@@ -1,11 +1,13 @@
 import 'server-only';
-import nodemailer from 'nodemailer';
 
-const transport = nodemailer.createTransport({
-  host: process.env.SMTP_HOST ?? 'localhost',
-  port: Number(process.env.SMTP_PORT ?? 1025),
-  secure: false,
-});
+async function getTransport() {
+  const nodemailer = await import('nodemailer');
+  return nodemailer.default.createTransport({
+    host: process.env.SMTP_HOST ?? 'localhost',
+    port: Number(process.env.SMTP_PORT ?? 1025),
+    secure: false,
+  });
+}
 
 const FROM = process.env.MAIL_FROM ?? 'MissionLab <no-reply@missionlab.local>';
 export const APP_URL = process.env.APP_URL ?? 'http://localhost:3000';
@@ -29,6 +31,7 @@ function layout(title: string, body: string, cta: { label: string; url: string }
 
 export async function sendVerificationEmail(to: string, name: string, token: string): Promise<void> {
   const url = `${APP_URL}/verify-email/confirm?token=${encodeURIComponent(token)}`;
+  const transport = await getTransport();
   await transport.sendMail({
     from: FROM,
     to,
@@ -44,6 +47,7 @@ export async function sendVerificationEmail(to: string, name: string, token: str
 
 export async function sendPasswordResetEmail(to: string, name: string, token: string): Promise<void> {
   const url = `${APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
+  const transport = await getTransport();
   await transport.sendMail({
     from: FROM,
     to,
