@@ -12,7 +12,7 @@ import { EventTimeline } from './EventTimeline';
 import { MissionTour } from './MissionTour';
 import { useExploreStore } from '@/features/explore/store';
 import { MissionReview } from '@/features/debrief/components/MissionReview';
-import { MissionBriefing } from '@/features/explore/ui/MissionBriefing';
+import { MissionIntro } from './MissionIntro';
 
 const HabitatExplorer = dynamic(() => import('@/features/explore/ui/HabitatExplorer'), { ssr: false });
 
@@ -71,29 +71,15 @@ export function MissionWorkspace({ account, startTour }: { account: React.ReactN
 
   if (!started) {
     return (
-      <>
-        <MissionBriefing
-          canContinue={canContinue}
-          savedHour={missionState.hour}
-          savedBattery={missionState.resources.batteryKwh}
-          savedWater={missionState.resources.waterLiters}
-          onContinue={() => { enterHabitat(); setStarted(true); }}
-          onStart={(mode, destination = 'habitat') => {
-            useMissionStore.getState().enableTraining();
-            useMissionStore.getState().resetMission();
-            useMissionStore.getState().applyAction({ type: 'SET_LEARNING_MODE', mode });
-            useMissionStore.getState().clearFeedback();
-            if (destination === 'habitat') {
-              enterHabitat();
-            } else {
-              exitHabitat();
-            }
-            setEntered(true);
-            setStarted(true);
-          }}
-        />
-        {guestGate}
-      </>
+      <MissionIntro
+        account={account}
+        onStart={() => {
+          enableTraining();
+          enterHabitat();
+          setEntered(true);
+          setStarted(true);
+        }}
+      />
     );
   }
   if (worldMode === 'habitat') {
